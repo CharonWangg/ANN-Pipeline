@@ -41,7 +41,7 @@ if __name__ == '__main__':
     cfg_path = './config.yaml'
     hparams = {"dataset": "cifar10", "model_name": "resnet", "hidden_size": 64, "num_hidden_layers": 2,
                "activation": "relu", "dropout": 0.0, "lr": 0.001, "optimizer": "adam", "batch_size": 50,
-               "weight_decay": 0.0, "l1": 0.0, "l2": 0.0, "max_epochs": 10, "seed": 42}
+               "weight_decay": 0.0, "l1": 0.0, "l2": 0.0, "max_epochs": 5, "seed": 42}
     args = configure_args(cfg_path, hparams)
 
     # inference
@@ -50,5 +50,5 @@ if __name__ == '__main__':
      "h_o"(output_state), "h_p"(h_o after softmax)
      "labels"(raw label) } Unranked
     '''
-    layers_output = main(args)
+    layers_output = main(args)[0]
 

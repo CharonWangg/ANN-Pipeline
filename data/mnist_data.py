@@ -60,7 +60,6 @@ class MnistData(data.Dataset):
             self.dataset = dataset
 
     def __len__(self):
-        # get total length of 3 datasets
         return len(self.dataset)
 
     def __getitem__(self, idx):

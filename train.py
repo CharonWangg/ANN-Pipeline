@@ -89,4 +89,3 @@ if __name__ == '__main__':
     args = configure_args(cfg_path, hparams)
     # train
     main(args)
-    #

@@ -4,6 +4,8 @@ DATA:
     DATA_PATH: /home/charon/project/representation_paths/data/  # path to all datasets (mnist, cifar10, diy)
     LAEBL_PATH: /home/charon/project/representation_paths/data/  # path to all datasets (mnist, cifar10, diy)
 
+    NUM_TRAIN: -1 # -1 means all data
+    NUM_TEST: 10000
     TRAIN_BATCH_SIZE: 50
     VALID_BATCH_SIZE: 256
     TEST_BATCH_SIZE: 10000

@@ -78,6 +78,8 @@ def args_setup(cfg_path='./config.yaml'):
     parser.add_argument('--gpu', type=str, default='0', help='gpu id')
     parser.add_argument('--seed', default=cfg["SEED"], type=int)
     # data
+    parser.add_argument('--num_train', default=cfg["DATA"]["NUM_TRAIN"], type=int)
+    parser.add_argument('--num_test', default=cfg["DATA"]["NUM_TEST"], type=int)
     parser.add_argument('--train_batch_size', default=cfg["DATA"]["TRAIN_BATCH_SIZE"], type=int)
     parser.add_argument('--valid_batch_size', default=cfg["DATA"]["VALID_BATCH_SIZE"], type=int)
     parser.add_argument('--test_batch_size', default=cfg["DATA"]["TEST_BATCH_SIZE"], type=int)
