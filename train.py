@@ -23,7 +23,7 @@ def load_callbacks(args):
     # used to save the best model
     callbacks.append(plc.ModelCheckpoint(
         monitor='epoch',
-        dirpath=args.save_dir + '/' + f'{args.dataset}' + '/',
+        dirpath=args.save_dir, # + '/' + f'{args.dataset}' + '/',
         filename=f'{args.model_name}-' + \
                  f'{args.dataset}-' + \
                  f'{args.hidden_size[0]}-' + \
@@ -56,7 +56,7 @@ def load_callbacks(args):
     return callbacks
 
 
-def train(args):
+def main(args):
     pl.seed_everything(args.seed, workers=True)
     load_path = load_model_path_by_hparams(args.save_dir, args)
     print(f'load_path: {load_path}')
@@ -82,9 +82,10 @@ def train(args):
 if __name__ == '__main__':
     cfg_path = './config.yaml'
     # hparams used for training
-    hparams = {"dataset": "cifar10", "model_name": "resnet", "hidden_size": 64, "num_hidden_layers": 2,
-               "activation": "relu", "dropout": 0.0, "lr": 0.001, "optimizer": "adam", "batch_size": 50,
-               "weight_decay": 0.0, "l1": 0.0, "l2": 0.0, "max_epochs": 5, "seed": 42}
+    hparams = {"dataset": "mnist", "model_name": "resnet", "input_size": 784, "hidden_size": 64,
+               "num_hidden_layers": 2, "activation": "relu", "dropout": 0.0, "lr": 0.001,
+               "optimizer": "adam", "batch_size": 50, "weight_decay": 0.0,
+               "l1": 0.0, "l2": 0.0, "max_epochs": 5, "seed": 42}
     # import modified args
     args = configure_args(cfg_path, hparams)
     # train

@@ -25,7 +25,7 @@ DATA:
 
 MODEL:
     NAME: resnet  # fcn, resnet, resnet_p,
-    INPUT_SIZE: 3072
+    INPUT_SIZE: 784
     HIDDEN_SIZE: 64
     PROJECTION_SIZE: 64  # used for resnet with projection
     NUM_HIDDEN_LAYERS: 2  # total layers = input + hidden + output

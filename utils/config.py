@@ -31,7 +31,7 @@ def load_model_path_by_hparams(root, hparams=None):
     if Path(root).is_file():
         return root
     # concat the root and dataset name
-    root = os.path.join(root, hparams["dataset"])
+    # root = os.path.join(root, hparams["dataset"])
     # match the hparams to the file name
     files = [str(i) for i in list(Path(root).iterdir())
              if "{}-{}-{}-{}-{}-{}-{}-{}-{}-{}-{}-{}-{}-{}".format(
