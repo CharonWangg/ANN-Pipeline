@@ -4,6 +4,8 @@ Trying to be a comprehensive ANN training and analysis pipeline based on Pytorch
 - config.yaml: default config file and allowed be change by passing hparams(dict) into train or analysis
 - train.py: train demo
 - analysis.py: inference demo
+- data: used to control different dataset class
+- model: used to control different model class
 ## Folder Setting
     representation_paths
     ├── ANN-Pipeline            # this repo
