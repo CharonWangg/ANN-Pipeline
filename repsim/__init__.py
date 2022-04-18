@@ -8,7 +8,6 @@ from repsim.metrics import (
 )
 from typing import Union
 
-
 def compare(
     x: torch.Tensor,
     y: torch.Tensor,

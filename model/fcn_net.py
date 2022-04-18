@@ -3,7 +3,6 @@ import numpy as np
 from torch import nn
 from torch.nn import functional as F
 from configure_activation import configure_activation
-from . import common
 
 
 class FcnNet(nn.Module):
@@ -25,7 +24,6 @@ class FcnNet(nn.Module):
 
 def forward(self, x):
         x = x.view(x.size(0), -1)
-
         # input layer
         x = self.input_layer(x)
         hs = {"h_0": x.cpu()}

@@ -1,9 +1,5 @@
-""" This main entrance of the whole project.
-
-    Most of the code should not be changed, please directly
-    add all the input arguments of your model's constructor
-    and the dataset file's constructor. The MInterface and
-    DInterface can be seen as transparent to all your args.
+"""
+This main training entrance of the whole project.
 """
 import pytorch_lightning as pl
 
@@ -11,22 +7,22 @@ from pytorch_lightning import Trainer
 import pytorch_lightning.callbacks as plc
 from model import ModelInterface
 from data import DataInterface
-from pipeline.train.utils.config import args_setup, load_model_path_by_hparams
+from utils.config import args_setup, load_model_path_by_hparams, configure_args
 
 
 def load_callbacks(args):
     callbacks = []
     # used to control early stopping
-    callbacks.append(plc.EarlyStopping(
-        monitor='val_acc',
-        mode='max',
-        patience=args.patience,
-        min_delta=0.001,
-        verbose=True
-    ))
+    # callbacks.append(plc.EarlyStopping(
+    #     monitor='val_acc',
+    #     mode='max',
+    #     patience=args.patience,
+    #     min_delta=0.001,
+    #     verbose=True
+    # ))
     # used to save the best model
     callbacks.append(plc.ModelCheckpoint(
-        monitor='val_acc',
+        monitor='epoch',
         dirpath=args.save_dir + '/' + f'{args.dataset}' + '/',
         filename=f'{args.model_name}-' + \
                  f'{args.dataset}-' + \
@@ -35,9 +31,10 @@ def load_callbacks(args):
                  f'{args.activation}-' + \
                  f'{args.dropout}-' + \
                  f'{args.lr}-' + \
+                 f'{args.weight_decay}-' + \
                  f'{args.train_batch_size}-' + \
-                 f'{args.regularization}-' + \
-                 f'{args.regularization_weight}-' + \
+                 f'{args.l1}-' + \
+                 f'{args.l2}-' + \
                  f'{args.max_epochs}-' + \
                  f'{args.optimizer}-' + \
                  f'{args.loss}-' + \
@@ -46,7 +43,7 @@ def load_callbacks(args):
         save_top_k=1,
         mode='max',
         verbose=True,
-        save_last=True
+        save_last=False
     ))
 
     # if args.lr_scheduler:
@@ -59,7 +56,7 @@ def load_callbacks(args):
     return callbacks
 
 
-def main(args):
+def train(args):
     pl.seed_everything(args.seed, workers=True)
     load_path = load_model_path_by_hparams(args.save_dir, args)
     print(f'load_path: {load_path}')
@@ -84,5 +81,12 @@ def main(args):
 
 if __name__ == '__main__':
     cfg_path = './config.yaml'
-    args = args_setup(cfg_path)
+    # hparams used for training
+    hparams = {"dataset": "cifar10", "model_name": "resnet", "hidden_size": 64, "num_hidden_layers": 2,
+               "activation": "relu", "dropout": 0.0, "lr": 0.001, "optimizer": "adam", "batch_size": 50,
+               "weight_decay": 0.0, "l1": 0.0, "l2": 0.0, "max_epochs": 5, "seed": 42}
+    # import modified args
+    args = configure_args(cfg_path, hparams)
+    # train
     main(args)
+    #

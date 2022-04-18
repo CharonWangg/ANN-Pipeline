@@ -6,6 +6,10 @@ import argparse
 import os
 from pathlib2 import Path
 
+# TODO: load model in uid format by searching its hparams in a csv file
+def load_model_path_by_csv(root, hparams=None):
+    pass
+
 
 def load_model_path_by_hparams(root, hparams=None):
     """ When best = True, return the best model's path in a directory
@@ -38,9 +42,10 @@ def load_model_path_by_hparams(root, hparams=None):
             hparams["activation"],
             hparams["dropout"],
             hparams["lr"],
+            hparams["weight_decay"],
             hparams["train_batch_size"],
-            hparams["regularization"],
-            hparams["regularization_weight"],
+            hparams["l1"],
+            hparams["l2"],
             hparams["max_epochs"],
             hparams["optimizer"],
             hparams["loss"],
@@ -108,8 +113,8 @@ def args_setup(cfg_path='./config.yaml'):
     parser.add_argument('--momentum', default=cfg["OPTIMIZATION"]["MOMENTUM"], type=float)
     parser.add_argument('--optimizer', default=cfg["OPTIMIZATION"]["OPTIMIZER"], choices=["Adam", "SGD", "RMSprop"],
                         type=str)
-    parser.add_argument('--regularization', default=cfg["MODEL"]["REGULARIZATION"], type=str)
-    parser.add_argument('--regularization_weight', default=cfg["MODEL"]["REGULARIZATION_WEIGHT"], type=float)
+    parser.add_argument('--l1', default=cfg["MODEL"]["L1"], type=float)
+    parser.add_argument('--l2', default=cfg["MODEL"]["L2"], type=float)
     parser.add_argument('--patience', default=cfg["OPTIMIZATION"]["PATIENCE"], type=int)
     parser.add_argument('--log_dir', default=cfg["LOG"]["PATH"], type=str)
     parser.add_argument('--save_dir', default=cfg["MODEL"]["SAVE_DIR"], type=str)
@@ -139,16 +144,18 @@ def args_setup(cfg_path='./config.yaml'):
     args.std_sen = cfg["DATA"]["IMG_STD"]
     args.hidden_size = configure_hidden_size(cfg["MODEL"]["HIDDEN_SIZE"], cfg["MODEL"]["NUM_HIDDEN_LAYERS"])
     args.projection_size = configure_hidden_size(cfg["MODEL"]["PROJECTION_SIZE"], cfg["MODEL"]["NUM_HIDDEN_LAYERS"])
-    print(args)  # Print args
     return args
 
-
-def configure_analysis_args(cfg_path, hparams):
+def configure_args(cfg_path, hparams):
     args = args_setup(cfg_path)
-    # Set the hidden size to the same as the training
-    hparams["hidden_size"] = configure_hidden_size(hparams["hidden_size"], hparams["num_hidden_layers"])
     # align other args with hparams args
     args = vars(args)
     args.update(hparams)
+    # align the input size (int) to list
+    if isinstance(args["hidden_size"], int):
+        args["hidden_size"] = [ args["hidden_size"]] * args["num_hidden_layers"]
+    if isinstance(args["projection_size"], int):
+        args["projection_size"] = [args["projection_size"]] * args["num_hidden_layers"]
     args = argparse.Namespace(**args)
+
     return args

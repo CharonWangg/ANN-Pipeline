@@ -24,16 +24,16 @@ DATA:
 MODEL:
     NAME: resnet  # fcn, resnet, resnet_p,
     INPUT_SIZE: 3072
-    HIDDEN_SIZE: [64]
-    PROJECTION_SIZE: [64]  # used for resnet with projection
+    HIDDEN_SIZE: 64
+    PROJECTION_SIZE: 64  # used for resnet with projection
     NUM_HIDDEN_LAYERS: 2  # total layers = input + hidden + output
     OUTPUT_SIZE: 10
 
 
     DROPOUT: 0.0
     ACTIVATION: relu  # relu, tanh, sigmoid, leaky_relu, prelu
-    REGULARIZATION: none  # l2, l1, none
-    REGULARIZATION_WEIGHT: 0.0
+    L1: 0.0
+    L2: 0.0
 
     SAVE_DIR: /home/charon/project/representation_paths/models/
 
@@ -48,7 +48,7 @@ OPTIMIZATION:
     # OPTIMIZER
     OPTIMIZER: Adam  # Adam, SGD, RMSprop
     LR: 0.001
-    WEIGHT_DECAY: 0
+    WEIGHT_DECAY: 0.0
     MOMENTUM: 0.9
 
     # SCHEDULER
@@ -59,16 +59,7 @@ OPTIMIZATION:
     PATIENCE: 20
     ACC_GRADIENT_STEPS: 1
 
-INFERENCE:
-
-
-CUDA:
-    FP16: False
-    FP16_OPT_LEVEL: O1
-
 LOG:
-    PATH: /home/charon/project/Turtle_Soup/log/
-
-DEVICE: cuda:0
+    PATH: /home/charon/project/representation_paths/log/
 
 SEED: 42

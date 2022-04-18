@@ -1,12 +1,5 @@
 import torch
-from repsim.kernels import Kernel, center, SquaredExponential, Laplace, Linear
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from pprint import pprint
-from pathlib import Path
-from itertools import product
-from tqdm.auto import tqdm, trange
+from repsim.kernels import Kernel, SquaredExponential, Laplace, Linear
 
 
 def approx_dimensionality(x):
@@ -48,4 +41,7 @@ def configure_kernel(kernel_type, scale):
         raise ValueError(f"Unknown kernel type: {kernel_type}")
     return kernel
 
-def configure_
+
+# TODO: support different kinds of compare
+def configure_compare():
+    pass

@@ -23,6 +23,7 @@ class ModelInterface(pl.LightningModule):
         _, out = self(img)
         train_loss = self.loss_function(out, labels)
         self.log('train_loss', train_loss, on_step=True, on_epoch=True, prog_bar=False)
+        train_loss += self.l1 * self.l1_norm() + self.l2 * self.l2_norm()
         return train_loss
 
     def validation_step(self, batch, batch_idx):
@@ -44,6 +45,9 @@ class ModelInterface(pl.LightningModule):
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         img, labels = batch
         hs, out = self(img)
+        # put pixels and labels into hidden layers state
+        hs["pixels"] = img
+        hs["labels"] = labels
         return hs
 
     # def training_epoch_end(self, train_step_outputs):
@@ -63,6 +67,15 @@ class ModelInterface(pl.LightningModule):
         # print("*"*50)
         self.log('val_loss', loss, on_epoch=True, prog_bar=False)
         self.log('val_acc', val_acc, on_epoch=True, prog_bar=False)
+
+    def l1_norm(self):
+        return sum(p.abs().sum() for p in self.model.parameters() if p.ndim >= 2)
+
+    def l2_norm(self):
+        return sum((p ** 2).sum() for p in self.model.parameters() if p.ndim >= 2)
+
+    def nuc_norm(self):
+        return sum(torch.norm(p, p="nuc") for p in self.model.parameters() if p.ndim >= 2)
 
     def configure_optimizers(self):
         # optimizer
