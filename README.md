@@ -1,12 +1,26 @@
-# Pytorch-Lightning-Template: Classification
+# ANN Pipeline
+Trying to be a comprehensive ANN training and analysis pipeline based on Pytorch Lightning
+## Codebase Setting
+- config.yaml: default config file and allowed be change by passing hparams(dict) into train or analysis
+- train.py: train demo
+- analysis.py: inference demo
+- data: used to control different dataset class
+- model: used to control different model class
+## Folder Setting
+- For ANN Analysis:
+    representation_paths
+    ├── Template for ANN analysis        # this repo
+    ├── data                             # folder for all data
+    ├── models                           # folder for all trained models
+    ├── results                          # folder for all results
 
-## Introduction
-
-本目录主要提供的是classification类型的template。
-
-不同类型的template的主要区别在于:
-1. `main.py` 中callbacks的观察对象即命名方法(这里是`val_acc`)。
-2. `model/model_interface.py` 中增加了对`val_acc`的计算。
-3. `model`中加入了特制的`standard_net.py`，用于应对各种常见预训练模型问题。
-4. `data`中的`standard_data.py`提供了分类问题中常见的数据处理方法。
-5. 其他一些细节。
+- For NLP:
+    NLP tasks
+    ├── Template for NLP                 # this repo
+    ├── data                             # folder for all data
+    ├── models                           # folder for all trained models
+## TODO
+For ANN Analysis:
+- add more functions to train pipeline
+- complete analysis pipeline
+- formalize the interface between modules (model store format (csv?)/model load format(csv search?)/inference store format)
