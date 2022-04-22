@@ -1,0 +1,82 @@
+DATA:
+    DATASET: story
+
+    TRAIN_PATH: ../data/cmu_scifi/triplet_train_42.csv
+    VALID_PATH: ../data/cmu_scifi/triplet_valid_42.csv
+    TEST_PATH: ../data/cmu_scifi/triplet_valid_42.csv
+    NUM_TRAIN: -1 # -1 means all data
+    NUM_VALID: -1
+    NUM_TEST: -1
+    TRAIN_BATCH_SIZE: 512
+    VALID_BATCH_SIZE: 8192
+    TEST_BATCH_SIZE: 256
+
+    TRAIN_SIZE: 0.8 # 0.8 means 80% of data
+
+    # Augmentation
+    AUG: False
+    AUG_PROB: 0.5
+    IMG_MEAN: (0.485, 0.456, 0.406)
+    IMG_STD: (0.229, 0.224, 0.225)
+
+    # Label
+    CLASS_NUM: 10
+
+    NUM_WORKERS: 24
+
+TOKENIZE:
+    NAME: albert-base-v2 # sentence-transformers/all-MiniLM-L6-v2 #
+    MAX_SEQ_LEN: 3
+    DOC_STRIDE: 0
+
+MODEL:
+    NAME: sent_model
+
+    ENCODER:
+        NAME: albert-base-v2 #sentence-transformers/all-MiniLM-L6-v2 # roberta-base
+        HIDDEN_SIZE: 768
+
+    ARG_COMP:
+        HIDDEN_SIZE: 1024
+        OUTPUT_SIZE: 512
+
+    EVENT_COMP:
+        HIDDEN_SIZE: 512
+        OUTPUT_SIZE: 256
+
+    DROPOUT: 0.0
+    L1: 0.0
+    L2: 0.0
+
+    SAVE_DIR: /home/charon/project/Turtle_Soup/models/SBERT_AlBerta_general_event_freeze
+
+
+OPTIMIZATION:
+    LOSS: diy  # cross_entropy, binary_cross_entropy, l1, l2, diy
+
+    MAX_EPOCHS: 10
+
+    # OPTIMIZER
+    OPTIMIZER: diy  # Adam, SGD, RMSprop, AdamW, diy
+    LR: 0.001
+    WEIGHT_DECAY: 0.0
+    MOMENTUM: 0.9
+    EPSILON: 0.00000008
+    CORRECT_BIAS: True
+    MARGIN: 1.0
+
+    # SCHEDULER
+    LR_SCHEDULER: constant  # cyclic, plateau, cosine, step
+    LR_DECAY_STEPS: 20
+    LR_DECAY_RATE: 0.5
+    LR_DECAY_MIN_LR: 0.00001
+    PATIENCE: 5
+    ACC_GRADIENT_STEPS: 1
+
+
+LOG:
+    PATH: /home/charon/project/Turtle_Soup/log/
+
+DEVICES: [0]
+
+SEED: 42
