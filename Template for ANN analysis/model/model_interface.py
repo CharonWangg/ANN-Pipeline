@@ -46,8 +46,9 @@ class ModelInterface(pl.LightningModule):
         img, labels = batch
         hs, out = self(img)
         # put pixels and labels into hidden layers state
-        hs["pixels"] = img
-        hs["labels"] = labels
+        hs = {key: value.cpu() for key, value in hs.items()}
+        hs["pixels"] = img.cpu()
+        hs["labels"] = labels.cpu()
         return hs
 
     # def training_epoch_end(self, train_step_outputs):

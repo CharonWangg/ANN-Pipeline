@@ -32,15 +32,15 @@ class ResnetPNet(nn.Module):
         x = x.view(x.size(0), -1)
         # input layer
         x = self.input_layer(x)
-        hs = {"h_0": x.cpu()}
+        hs = {"h_0": x}
         # hidden layers
         for i in range(len(self.hidden_layers)):
             x = x + self.projectors[i](F.dropout(self.hidden_layers[i](x), p=self.dropout, training=self.training))
-            hs[f"h_{i + 1}"] = x.cpu()
+            hs[f"h_{i + 1}"] = x
         # output layer
         x = self.output_layer(x)
-        hs["h_o"] = x.cpu()
+        hs["h_o"] = x
         # softmax layer
-        hs["h_p"] = F.softmax(x, dim=-1).cpu()
+        hs["h_p"] = F.softmax(x, dim=-1)
 
         return hs, x

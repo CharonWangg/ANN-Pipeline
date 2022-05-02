@@ -26,14 +26,14 @@ def main(args):
         print('Can\'t Found checkpoint, using un-trained model instead..')
     else:
         model = ModelInterface(vars(args))
-        args.ckpt_path = load_path
+        # args.ckpt_path = load_path
         print('Found checkpoint, start analyzing..')
 
     trainer = Trainer.from_argparse_args(args)
     # check the approximate dimension of pixels
     dim = approx_dataloader_dimensionality(data_module)
     # inference
-    layers_output = trainer.predict(model, data_module)  # {f"h_{i}": torch.Tensor}
+    layers_output = trainer.predict(model, data_module, ckpt_path=load_path)  # {f"h_{i}": torch.Tensor}
     return layers_output
 
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     hparams = {"dataset": "mnist", "model_name": "resnet", "input_size": 784, "hidden_size": 64,
                "num_hidden_layers": 2, "activation": "relu", "dropout": 0.0, "lr": 0.001,
                "optimizer": "adam", "batch_size": 50, "weight_decay": 0.0,
-               "l1": 0.0, "l2": 0.0, "max_epochs": 5, "seed": 42}
+               "l1": 0.0, "l2": 0.0, "epoch": 4, "seed": 42}
     args = configure_args(cfg_path, hparams)
 
     # inference
