@@ -43,18 +43,22 @@ class Cifar10Data(data.Dataset):
         # Build dataset for training/validation/testing
         # TODO: seems not very efficient to repetitively load the dataset for train and valid
         trans = self.augmentation()
+        print(self.ds_type)
+        print(trans)
         if self.ds_type == "train":
             dataset = torchvision.datasets.CIFAR10(data_dir, train=True, download=False, transform=trans)
-            n_train = int(len(dataset) * self.train_size)
-            n_val = len(dataset) - n_train
-            train, val = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(self.seed))
-            self.dataset = train
+            # n_train = int(len(dataset) * self.train_size)
+            # n_val = len(dataset) - n_train
+            # train, val = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(self.seed))
+            self.dataset = dataset
         elif self.ds_type == "valid":
-            dataset = torchvision.datasets.CIFAR10(data_dir, train=True, download=False, transform=trans)
-            n_train = int(len(dataset) * self.train_size)
-            n_val = len(dataset) - n_train
-            train, val = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(self.seed))
-            self.dataset = val
+            # dataset = torchvision.datasets.CIFAR10(data_dir, train=True, download=False, transform=trans)
+            # n_train = int(len(dataset) * self.train_size)
+            # n_val = len(dataset) - n_train
+            # train, val = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(self.seed))
+            # self.dataset = val
+            dataset = torchvision.datasets.CIFAR10(data_dir, train=False, download=False, transform=trans)
+            self.dataset = dataset
         elif self.ds_type == "test":
             dataset = torchvision.datasets.CIFAR10(data_dir, train=False, download=False, transform=trans)
             self.dataset = dataset
@@ -67,11 +71,16 @@ class Cifar10Data(data.Dataset):
         return self.dataset[idx]
 
     def augmentation(self):
-        trans = torch.nn.Sequential(
-            transforms.RandomHorizontalFlip(self.aug_prob),
-            transforms.RandomVerticalFlip(self.aug_prob),
-            transforms.RandomRotation(10),
-            transforms.RandomCrop(128),
-            transforms.Normalize(self.img_mean, self.img_std),
-        ) if self.aug else transforms.ToTensor()
+        if self.aug:
+            trans = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(self.aug_prob),
+                transforms.ToTensor(),
+                transforms.Normalize(self.img_mean, self.img_std),
+            ])
+        else:
+            trans = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(self.img_mean, self.img_std),
+            ])
         return trans

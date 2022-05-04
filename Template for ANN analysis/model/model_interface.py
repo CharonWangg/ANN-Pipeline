@@ -20,20 +20,20 @@ class ModelInterface(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         #img, labels, filename = batch
         img, labels = batch
-        _, out = self(img)
+        out = self(img)
         train_loss = self.loss_function(out, labels)
-        self.log('train_loss', train_loss, on_step=True, on_epoch=True, prog_bar=False)
+        self.log('train_loss', train_loss, on_step=True, on_epoch=True, prog_bar=True)
         train_loss += self.l1 * self.l1_norm() + self.l2 * self.l2_norm()
         return train_loss
 
     def validation_step(self, batch, batch_idx):
         # img, labels, filename = batch
         img, labels = batch
-        _, out = self(img)
+        out = self(img)
         loss = self.loss_function(out, labels)
         label_digit = labels
         out_digit = out.argmax(axis=-1)
-        # self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=False)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         correct_num = sum(label_digit == out_digit).cpu().item()
 
         return (correct_num, len(out_digit), loss.item())
@@ -86,7 +86,8 @@ class ModelInterface(pl.LightningModule):
                                          lr=self.lr, weight_decay=self.weight_decay)
         elif self.optimizer.lower() == 'sgd':
             optimizer = torch.optim.SGD(self.model.parameters(),
-                                        lr=self.lr, weight_decay=self.weight_decay)
+                                        lr=self.lr, weight_decay=self.weight_decay,
+                                        momentum=self.momentum)
         elif self.optimizer.lower() == 'rmsprop':
             optimizer = torch.optim.RMSprop(self.model.parameters(),
                                             lr=self.lr, weight_decay=self.weight_decay)
@@ -102,6 +103,9 @@ class ModelInterface(pl.LightningModule):
                                      step_size_up=self.opt_cfg["STEP_SIZE_UP"],
                                      step_size_down=self.opt_cfg["STEP_SIZE_DOWN"],
                                      mode=self.opt_cfg["MODE"])
+        elif self.lr_scheduler.lower() == 'cosine':
+            scheduler = lrs.CosineAnnealingLR(optimizer,
+                                              T_max=self.max_epochs)
         elif self.lr_scheduler.lower() == 'plateau':
             # TODO: add plateau scheduler
             scheduler = lrs.ReduceLROnPlateau(optimizer,
@@ -113,6 +117,33 @@ class ModelInterface(pl.LightningModule):
             scheduler = lrs.StepLR(optimizer,
                                    step_size=self.lr_decay_step,
                                    gamma=self.lr_decay_rate)
+        elif self.lr_scheduler.lower() == 'one_cycle':
+            scheduler = lrs.OneCycleLR(optimizer,
+                                       max_lr=self.lr,
+                                       steps_per_epoch=self.lr_decay_steps,
+                                       epochs=self.max_epochs,
+                                       anneal_strategy='linear',
+                                       div_factor=self.max_epochs,
+                                       final_div_factor=self.max_epochs,
+                                       verbose=True
+                                       )
+        elif self.lr_scheduler.lower() == 'cifar':
+            scheduler = lrs.OneCycleLR(optimizer,
+                                       max_lr=self.lr,
+                                       steps_per_epoch=self.lr_decay_steps,
+                                       epochs=self.max_epochs,
+                                       anneal_strategy='linear',
+                                       cycle_momentum=False,
+                                       pct_start=self.lr_warmup_epochs/self.max_epochs,
+                                       div_factor=self.lr_warmup_epochs,
+                                       final_div_factor=self.max_epochs-self.lr_warmup_epochs,
+                                       # three_phase=True,
+                                       verbose=True
+                                       )
+        elif self.lr_scheduler.lower() == 'multistep':
+            scheduler = lrs.MultiStepLR(optimizer,
+                                        milestones=[5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                                        gamma=self.lr_decay_rate)
         elif self.lr_scheduler.lower() == 'constant':
             scheduler = lrs.ConstantLR(optimizer)
         else:
