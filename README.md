@@ -4,7 +4,7 @@ Trying to be a comprehensive ANN training and analysis pipeline based on Pytorch
 - config.yaml: default config file and allowed be change by passing hparams(dict) into train or analysis
 - train.sh: shell script used to call train_by_cmd.py
 - train_by_dict.py: .py script used to train by passing hparams dict
-- analysis.py: inference demo
+- inference.py: inference demo, it will match the given hparams and select the best model among them.
 - data: used to control different dataset class
     - cifar10
     - mnist
