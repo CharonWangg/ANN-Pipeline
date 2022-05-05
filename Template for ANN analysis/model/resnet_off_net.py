@@ -19,4 +19,4 @@ class ResnetOffNet(pl.LightningModule):
     def forward(self, x):
         output = self.network(x)
         # output = F.log_softmax(output, dim=-1)
-        return output
+        return {"logits": output}

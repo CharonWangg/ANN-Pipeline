@@ -23,7 +23,7 @@ screened_hparams = ["uid", "log_dir", "exp_name", "run", "dataset", "data_dir", 
                     "img_mean", "img_std",
                     "train_loss", "train_acc", "val_loss", "val_acc"]
 
-non_log_hparams = [p for p in screened_hparams if p not in ["log_dir", "model_path", "train_loss", "train_acc", "val_loss", "val_acc"]]
+non_log_hparams = [p for p in screened_hparams if p not in ["log_dir", "model_path", "train_loss", "train_acc", "val_loss", "val_acc", "strategy", "devices"]]
 
 
 
@@ -40,7 +40,8 @@ def match_hparams(hparams, df):
     """check if hparmas values are in the dataframe"""
     found = False
     # convert None to 'None'
-    hparams["strategy"] = str(hparams["strategy"])
+    if "strategy" in hparams:
+        hparams["strategy"] = str(hparams["strategy"])
 
     for idx, row in df.iterrows():
         # check if all hparams are in the existed row
@@ -70,7 +71,8 @@ def match_hparams(hparams, df):
 def hparams2csv(hparams, csv_path):
     """Writes hparams to a csv file."""
     # convert None to 'None'
-    hparams["strategy"] = str(hparams["strategy"])
+    if "strategy" in hparams:
+        hparams["strategy"] = str(hparams["strategy"])
     # if csvs exist, open in append mode
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)

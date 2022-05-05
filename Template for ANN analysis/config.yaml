@@ -9,8 +9,8 @@ DATA:
     NUM_TEST: 1.0 # 1.0 means all data
     NUM_PREDICT: 1.0 # 1.0 means all data
     TRAIN_BATCH_SIZE: 50
-    VALID_BATCH_SIZE: 1024
-    TEST_BATCH_SIZE: 1024
+    VALID_BATCH_SIZE: 256
+    TEST_BATCH_SIZE: 256
 
     TRAIN_SIZE: 1.0
 
@@ -72,7 +72,7 @@ LOG:
     NAME: train_log
     PATH: /home/charon/project/representation_paths/log/
 
-PRECISION: 16
+PRECISION: 32
 
 DEVICES: [0]
 

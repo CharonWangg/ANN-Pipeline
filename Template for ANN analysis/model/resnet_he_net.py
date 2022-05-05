@@ -20,4 +20,4 @@ class ResnetHeNet(pl.LightningModule):
     def forward(self, x):
         inp = {"input": x}
         output = self.network(inp)
-        return output["logits"]
+        return output

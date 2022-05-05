@@ -1,20 +1,20 @@
 #! /bin/bash
 PYTHON=/home/charon/anaconda3/envs/ml37/bin/python
-JOBS=1
+JOBS=2
 
 # data
 DATASET=(cifar10)
 # model
 MODEL_NAME=(resnet_he)
-DEPTH=(20)
+DEPTH=(14 20 26 32 38 44 56 110 164)
 WIDTH_MULTIPLIER=(1)
 # optimization
 LR=(0.1)
-MAX_EPOCHS=(30)
+MAX_EPOCHS=(200)
 OPTIMIZER=(SGD)
 MOMENTUM=(0.9)
-LR_SCHEDULER=(cifar)
-TRAIN_BATCH_SIZE=(256)
+LR_SCHEDULER=(cosine)
+TRAIN_BATCH_SIZE=(128)
 WEIGHT_DECAY=(0.0005)
 # augmentation
 AUG=(True)
@@ -26,7 +26,7 @@ DEVICES=([0])
 # randomness
 SEED=(7)
 # logging
-EXP_NAME=(resnet_he_cifar10)
+EXP_NAME=(resnet_he_cifar10_width_repro)
 RUN=(0)
 
 

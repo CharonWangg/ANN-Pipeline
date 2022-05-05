@@ -73,7 +73,7 @@ def main(args):
     trainer = Trainer.from_argparse_args(args)
 
     trainer.fit(model, data_module, ckpt_path=args.ckpt_path)
-    trainer.test(model, data_module, ckpt_path=args.ckpt_path)
+    trainer.test(model, data_module)
 
 
 if __name__ == '__main__':

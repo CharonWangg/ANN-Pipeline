@@ -22,7 +22,7 @@ class ModelInterface(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # img, labels, filename = batch
         img, labels = batch
-        out = self(img)
+        out = self(img)["logits"]
         train_loss = self.loss_function(out, labels)
         out = torch.softmax(out, dim=-1)
         preds = torch.argmax(out, dim=-1)
@@ -37,7 +37,7 @@ class ModelInterface(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         # img, labels, filename = batch
         img, labels = batch
-        out = self(img)
+        out = self(img)["logits"]
         loss = self.loss_function(out, labels)
         out = torch.softmax(out, dim=-1)
         out_digit = out.argmax(axis=-1)
@@ -48,7 +48,7 @@ class ModelInterface(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         img, labels = batch
-        out = self(img)
+        out = self(img)["logits"]
         loss = self.loss_function(out, labels)
         out = torch.softmax(out, dim=-1)
         preds = torch.argmax(out, dim=-1)
@@ -59,12 +59,8 @@ class ModelInterface(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         img, labels = batch
-        hs, out = self(img)
-        # put pixels and labels into hidden layers state
-        hs = {key: value.cpu() for key, value in hs.items()}
-        hs["pixels"] = img.cpu()
-        hs["labels"] = labels.cpu()
-        return hs
+        out = self(img)
+        return out
 
     def validation_epoch_end(self, validation_step_outputs):
         # outputs is a list of output from validation_step

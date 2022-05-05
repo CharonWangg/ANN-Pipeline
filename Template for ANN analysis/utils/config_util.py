@@ -10,30 +10,52 @@ from pathlib2 import Path
 
 
 # load model in uid format by searching its hparams in a csv file
-def load_model_path_by_csv(root, hparams=None):
+def load_model_path_by_csv(root, hparams=None, mode='train'):
     if hparams is None:
         return None
+    elif isinstance(hparams, dict):
+        pass
     elif isinstance(hparams, object):
         hparams = vars(hparams)
 
-
-    # concat the root and .csv
-    csv_path = hparams["save_dir"] + "models_log.csv"
-    hparams = {k: v for k, v in hparams.items() if k in non_log_hparams}
-    if os.path.exists(csv_path):
-        df = pd.read_csv(csv_path)
-        df, cur_uid = match_hparams(hparams, df)
-        if (df.loc[df["uid"]==cur_uid, "model_path"]=='').any():
-            return None
+    if mode == "train":
+        # concat the root and .csv
+        csv_path = root + "models_log.csv"
+        hparams = {k: v for k, v in hparams.items() if k in non_log_hparams}
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+            df, cur_uid = match_hparams(hparams, df)
+            if (df.loc[df["uid"]==cur_uid, "model_path"]=='').any():
+                return None
+            else:
+                # return the best val_acc model path
+                load_path = df.groupby(by="uid").get_group(cur_uid)
+                load_path = df.iloc[0]["model_path"] if load_path.shape[0] == 1 else load_path.sorted_values(by="val_acc", ascending=False)["model_path"].values[0]
+                print('Loading the best model of uid {} from {}'.format(cur_uid, load_path))
+                return load_path
         else:
+            print("The csv file does not exist, will create one during training.")
+            return None
+    elif mode == "inference":
+        # concat the root and .csv
+        csv_path = root + "models_log.csv"
+        df = pd.read_csv(csv_path)
+        # exclude the inference hparams that could be different from training hparams
+        hparams.pop("inference_seed")
+        hparams.pop("devices")
+        try:
+            for k, v in hparams.items():
+                df = df.groupby(by=k).get_group(v)
             # return the best val_acc model path
-            load_path = df.groupby(by="uid").get_group(cur_uid)
-            load_path = df.iloc[0]["model_path"] if load_path.shape[0] == 1 else load_path.sorted_values(by="val_acc", ascending=False)["model_path"].values[0]
-            print('Loading the best model of uid {} from {}'.format(cur_uid, load_path))
+            load_path = df.iloc[0]["model_path"] if df.shape[0] == 1 else df.sorted_values(by="val_acc", ascending=False)["model_path"].values[0]
+
             return load_path
-    else:
-        print("The csv file does not exist, will create one during training.")
-        return None
+        except KeyError:
+            print("The hparams are not in the csv file.")
+            return None
+
+
+
 
 
 def load_model_path_by_hparams(root, hparams=None):
@@ -106,6 +128,7 @@ def args_setup(cfg_path='./config.yaml'):
     # parser.add_argument('--stage', type=str, default="fit", choices=["fit", "test"])
     # parser.add_argument('--gpu', type=str, default='0', help='gpu id')
     parser.add_argument('--seed', default=cfg["SEED"], type=int)
+    parser.add_argument('--inference_seed', default=cfg["SEED"], type=int)
     # data
     parser.add_argument('--train_batch_size', default=cfg["DATA"]["TRAIN_BATCH_SIZE"], type=int)
     parser.add_argument('--valid_batch_size', default=cfg["DATA"]["VALID_BATCH_SIZE"], type=int)
