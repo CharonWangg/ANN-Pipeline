@@ -1,6 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from pipeline.utils import Add, Identity
+import sys
+
+sys.path.append('../')
+from utils import Add, Identity
 
 
 # activation function parser
@@ -126,6 +129,5 @@ def resnet_cifar(depth=20,
     model_spec['prob'] = nn.Softmax(dim=-1)
 
     return model_spec
-
 
 # **********************************************************************************************************************

@@ -4,6 +4,7 @@ import importlib
 from torch.nn import functional as F
 import torch.optim.lr_scheduler as lrs
 import pytorch_lightning as pl
+from torchmetrics.functional import accuracy
 
 
 class ModelInterface(pl.LightningModule):
@@ -13,16 +14,23 @@ class ModelInterface(pl.LightningModule):
         self.kwargs = kwargs
         self.load_model()
         self.configure_loss()
+        # self.save_hyperparameters()
 
     def forward(self, img):
         return self.model(img)
 
     def training_step(self, batch, batch_idx):
-        #img, labels, filename = batch
+        # img, labels, filename = batch
         img, labels = batch
         out = self(img)
         train_loss = self.loss_function(out, labels)
+        out = torch.softmax(out, dim=-1)
+        preds = torch.argmax(out, dim=-1)
+        train_acc = accuracy(preds, labels)
+
+        self.log('train_acc', train_acc, on_step=False, on_epoch=True, prog_bar=True)
         self.log('train_loss', train_loss, on_step=True, on_epoch=True, prog_bar=True)
+
         train_loss += self.l1 * self.l1_norm() + self.l2 * self.l2_norm()
         return train_loss
 
@@ -31,16 +39,23 @@ class ModelInterface(pl.LightningModule):
         img, labels = batch
         out = self(img)
         loss = self.loss_function(out, labels)
-        label_digit = labels
+        out = torch.softmax(out, dim=-1)
         out_digit = out.argmax(axis=-1)
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-        correct_num = sum(label_digit == out_digit).cpu().item()
+        # self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        correct_num = sum(labels == out_digit).cpu().detach()
 
-        return (correct_num, len(out_digit), loss.item())
+        return (correct_num, len(out_digit), loss.detach())
 
     def test_step(self, batch, batch_idx):
-        # Here we just reuse the validation_step for testing
-        return self.validation_step(batch, batch_idx)
+        img, labels = batch
+        out = self(img)
+        loss = self.loss_function(out, labels)
+        out = torch.softmax(out, dim=-1)
+        preds = torch.argmax(out, dim=-1)
+        acc = accuracy(preds, labels)
+
+        self.log("test_loss", loss, prog_bar=True)
+        self.log("test_acc", acc, prog_bar=True)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         img, labels = batch
@@ -51,23 +66,15 @@ class ModelInterface(pl.LightningModule):
         hs["labels"] = labels.cpu()
         return hs
 
-    # def training_epoch_end(self, train_step_outputs):
-    #     # outputs is a list of output from training_step
-    #     loss = torch.stack([x for x in train_step_outputs]).mean()
-    #     print(f'train_loss: {loss}')
-
     def validation_epoch_end(self, validation_step_outputs):
         # outputs is a list of output from validation_step
         correct_num = sum([x[0] for x in validation_step_outputs])
         total_num = sum([x[1] for x in validation_step_outputs])
-        loss = sum([x[2] for x in validation_step_outputs])/len(validation_step_outputs)
-        val_acc = correct_num/total_num
+        loss = sum([x[2] for x in validation_step_outputs]) / len(validation_step_outputs)
+        val_acc = correct_num / total_num
 
-        # print("*"*50)
-        # print(f'val_acc: {val_acc} | val_loss: {loss}')
-        # print("*"*50)
-        self.log('val_loss', loss, on_epoch=True, prog_bar=False)
-        self.log('val_acc', val_acc, on_epoch=True, prog_bar=False)
+        self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val_acc', val_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def l1_norm(self):
         return sum(p.abs().sum() for p in self.model.parameters() if p.ndim >= 2)
@@ -97,70 +104,67 @@ class ModelInterface(pl.LightningModule):
         # scheduler
         if self.lr_scheduler.lower() == 'cyclic':
             # TODO: add cyclic scheduler
-            scheduler = lrs.CyclicLR(optimizer,
-                                     base_lr=self.lr_decay_min_lr,
-                                     max_lr=self.lr,
-                                     step_size_up=self.opt_cfg["STEP_SIZE_UP"],
-                                     step_size_down=self.opt_cfg["STEP_SIZE_DOWN"],
-                                     mode=self.opt_cfg["MODE"])
+            scheduler = {"scheduler": lrs.CyclicLR(optimizer,
+                                                   base_lr=self.lr_decay_min_lr,
+                                                   max_lr=self.lr,
+                                                   step_size_up=self.lr_decay_steps,
+                                                   step_size_down=self.lr_decay_steps,
+                                                   mode=self.lr_decay_mode),
+                         "interval": "step"}
         elif self.lr_scheduler.lower() == 'cosine':
-            scheduler = lrs.CosineAnnealingLR(optimizer,
-                                              T_max=self.max_epochs)
+            scheduler = {"scheduler": lrs.CosineAnnealingLR(optimizer,
+                                                            T_max=self.max_epochs),
+                         "interval": "step"}
         elif self.lr_scheduler.lower() == 'plateau':
             # TODO: add plateau scheduler
-            scheduler = lrs.ReduceLROnPlateau(optimizer,
-                                              mode=self.opt_cfg["MODE"],
-                                              factor=self.opt_cfg["FACTOR"],
-                                              patience=self.opt_cfg["PATIENCE"],
-                                              verbose=self.opt_cfg["VERBOSE"])
+            scheduler = lrs.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, verbose=True)
         elif self.lr_scheduler.lower() == 'step':
-            scheduler = lrs.StepLR(optimizer,
-                                   step_size=self.lr_decay_step,
-                                   gamma=self.lr_decay_rate)
-        elif self.lr_scheduler.lower() == 'one_cycle':
-            scheduler = lrs.OneCycleLR(optimizer,
-                                       max_lr=self.lr,
-                                       steps_per_epoch=self.lr_decay_steps,
-                                       epochs=self.max_epochs,
-                                       anneal_strategy='linear',
-                                       div_factor=self.max_epochs,
-                                       final_div_factor=self.max_epochs,
-                                       verbose=True
-                                       )
-        elif self.lr_scheduler.lower() == 'cifar':
-            scheduler = lrs.OneCycleLR(optimizer,
-                                       max_lr=self.lr,
-                                       steps_per_epoch=self.lr_decay_steps,
-                                       epochs=self.max_epochs,
-                                       anneal_strategy='linear',
-                                       cycle_momentum=False,
-                                       pct_start=self.lr_warmup_epochs/self.max_epochs,
-                                       div_factor=self.lr_warmup_epochs,
-                                       final_div_factor=self.max_epochs-self.lr_warmup_epochs,
-                                       # three_phase=True,
-                                       verbose=True
-                                       )
+            scheduler = {"scheduler": lrs.StepLR(optimizer,
+                                                 step_size=self.lr_decay_steps,
+                                                 gamma=self.lr_decay_rate),
+                         "interval": "step"}
         elif self.lr_scheduler.lower() == 'multistep':
-            scheduler = lrs.MultiStepLR(optimizer,
-                                        milestones=[5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
-                                        gamma=self.lr_decay_rate)
+            scheduler = {"scheduler": lrs.MultiStepLR(optimizer,
+                                                      milestones=[135, 185],
+                                                      gamma=self.lr_decay_rate),
+                         "interval": "epoch"}
+        elif self.lr_scheduler.lower() == 'one_cycle':
+            scheduler = {"scheduler": lrs.OneCycleLR(optimizer,
+                                                     max_lr=self.lr,
+                                                     steps_per_epoch=self.lr_decay_steps,
+                                                     epochs=self.max_epochs,
+                                                     anneal_strategy='linear',
+                                                     div_factor=self.max_epochs,
+                                                     final_div_factor=self.max_epochs,
+                                                     verbose=True
+                                                     ),
+                         "interval": "step"}
+        elif self.lr_scheduler.lower() == 'cifar':
+            steps_per_epoch = (50000 // self.train_batch_size) + 1
+
+            scheduler = {"scheduler": lrs.OneCycleLR(optimizer,
+                                                     max_lr=self.lr,
+                                                     epochs=self.max_epochs,
+                                                     steps_per_epoch=steps_per_epoch),
+                         "interval": "step"}
         elif self.lr_scheduler.lower() == 'constant':
-            scheduler = lrs.ConstantLR(optimizer)
+            scheduler = {"scheduler": lrs.ConstantLR(optimizer),
+                         "interval": "step"}
         else:
             raise ValueError("Unknown scheduler")
 
-        return [optimizer], [scheduler]
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def configure_loss(self):
         loss = self.loss
         if loss == 'mse':
-            self.loss_function = F.mse_loss
+            self.loss_function = torch.nn.MSELoss()
         elif loss == 'l1':
-            self.loss_function = F.l1_loss
+            self.loss_function = torch.nn.L1Loss()
         elif loss == 'cross_entropy':
-            self.loss_function = F.cross_entropy
+            self.loss_function = torch.nn.CrossEntropyLoss()
         elif loss == 'binary_cross_entropy':
-            self.loss_function = F.binary_cross_entropy
+            self.loss_function = torch.nn.BCELoss()
         else:
             raise ValueError("Invalid Loss Type!")
 
@@ -175,7 +179,7 @@ class ModelInterface(pl.LightningModule):
         camel_name = ''.join([i.capitalize() for i in name.split('_')])
         try:
             Model = getattr(importlib.import_module(
-                '.'+name, package=__package__), camel_name)
+                '.' + name, package=__package__), camel_name)
         except:
             raise ValueError(
                 f'Invalid Module File Name or Invalid Class Name {name}.{camel_name}!')

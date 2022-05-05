@@ -1,7 +1,10 @@
 from torch import nn
 import pytorch_lightning as pl
 from .common import resnet_cifar
-from pipeline.utils import Network
+import sys
+
+sys.path.append('../')
+from utils import Network
 
 
 
