@@ -75,25 +75,25 @@ def main(args):
     trainer = Trainer.from_argparse_args(args)
 
     trainer.fit(model, data_module, ckpt_path=args.ckpt_path)
-    trainer.test(model, data_module, ckpt_path=args.ckpt_path)
+    trainer.test(model, data_module)
 
 
 if __name__ == '__main__':
-    cfg_path = './config.yaml'
+    cfg_path = 'config.yaml'
     # hparams used for training
     hparams = {"dataset": "cifar10", "model_name": "resnet_he",
                "depth": 20, "width_multiplier": 1.0,
                "activation": "relu", "dropout": 0.0,
-               "lr": 0.1, "optimizer": "sgd", "momentum": 0.9,
-               "lr_scheduler": "cosine", "lr_decay_rate": 0.1,
+               "lr": 0.12, "optimizer": "sgd", "momentum": 0.9,
+               "lr_scheduler": "cifar", "lr_decay_rate": 0.1,
                "lr_decay_steps": 1, "lr_warmup_epochs": 5,
                "train_batch_size": 128, "weight_decay": 5e-4,
-               "l1": 0.0, "l2": 0.0, "max_epochs": 300, "epoch": 0,
+               "l1": 0.0, "l2": 0.0, "max_epochs": 100, "epoch": 0,
                "aug": True, "aug_prob": 0.5,
-               "seed": 42, "devices": [3], "strategy": None,
+               "seed": 7, "gpus": "0", "strategy": None,
                "precision": 32}
     # import modified args
     args = configure_args(cfg_path, hparams)
     # train
-    print(f'hparams: {args}')
+    # print(f'hparams: {args}')
     main(args)

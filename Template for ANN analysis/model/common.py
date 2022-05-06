@@ -107,7 +107,8 @@ def resnet_cifar(depth=20,
                     'block0': conv_bn(num_features // 2, num_features, stride=2),
                     'block1': conv_bn(num_features, num_features, stride=1, relu=False),
                     'proj_x': (nn.Conv2d(num_features // 2, num_features, kernel_size=1, stride=2), 'x'),
-                    'skip': (Add(), ['proj_x', -1]),
+                    # 'skip': (Add(), ['proj_x', -1]),
+                    'skip': (Add(), ['proj_x', 'block1/bn']),
                     'relu': nn.ReLU()
                 }
             else:

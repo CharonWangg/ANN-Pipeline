@@ -20,6 +20,7 @@ def load_callbacks(args):
         strict=False,
         patience=args.patience,
         min_delta=0.001,
+        check_finite=True,
         verbose=True
     ))
     # used to save the best model

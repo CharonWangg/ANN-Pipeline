@@ -19,11 +19,11 @@ screened_hparams = ["uid", "log_dir", "exp_name", "run", "dataset", "data_dir", 
                     "max_epochs", "cur_epoch", "optimizer", "weight_decay", "momentum", "l1", "l2", "patience",
                     "accumulate_grad_batches",
                     "limit_train_batches", "limit_val_batches", "limit_test_batches", "limit_predict_batches",
-                    "accelerator", "devices", "strategy", "sync_batchnorm", "precision",
+                    "accelerator", "gpus", "strategy", "sync_batchnorm", "precision",
                     "img_mean", "img_std",
                     "train_loss", "train_acc", "val_loss", "val_acc"]
 
-non_log_hparams = [p for p in screened_hparams if p not in ["log_dir", "model_path", "train_loss", "train_acc", "val_loss", "val_acc", "strategy", "devices"]]
+non_log_hparams = [p for p in screened_hparams if p not in ["log_dir", "model_path", "train_loss", "train_acc", "val_loss", "val_acc", "strategy", "gpus"]]
 
 
 
@@ -150,8 +150,9 @@ class CSVModelCheckpoint(ModelCheckpoint):
         self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
         self.best_model_score = self.best_k_models[self.best_model_path]
 
-        # add the uid to the filepath
+        # add the uid to the filepath and del_filepath
         filepath = filepath.replace("uid", f"uid={self.cur_uid}")
+        del_filepath = del_filepath.replace("uid", f"uid={self.cur_uid}") if del_filepath is not None else None
 
         if self.verbose:
             epoch = monitor_candidates["epoch"]
@@ -170,9 +171,9 @@ class CSVModelCheckpoint(ModelCheckpoint):
         df.loc[df["uid"] == self.cur_uid, "val_loss"] = monitor_candidates["val_loss"].detach().cpu().numpy()
         df.loc[df["uid"] == self.cur_uid, "val_acc"] = monitor_candidates["val_acc"].detach().cpu().numpy()
         df.loc[df["uid"] == self.cur_uid, "cur_epoch"] = int(monitor_candidates["epoch"])
-        df.loc[df["uid"] == self.cur_uid, "log_dir"] = df.loc[df["uid"] == self.cur_uid, "log_dir"] + \
-                                                       df.loc[df["uid"] == self.cur_uid, "exp_name"] + "/" + \
-                                                       f"version_{trainer.logger.version}"
+        if f"version_{trainer.logger.version}" not in df.loc[df["uid"] == self.cur_uid]["log_dir"].values[0]:
+            df.loc[df["uid"] == self.cur_uid, "log_dir"] += df.loc[df["uid"] == self.cur_uid, "exp_name"] + "/" + \
+                                                           f"version_{trainer.logger.version}"
         df.loc[df["uid"] == self.cur_uid, "model_path"] = filepath
         df.to_csv(self.csv_path, index=False)
         ##############################################

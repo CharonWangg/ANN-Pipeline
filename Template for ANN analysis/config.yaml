@@ -23,7 +23,7 @@ DATA:
     # Label
     CLASS_NUM: 10
 
-    NUM_WORKERS: 24
+    NUM_WORKERS: 8
 
 MODEL:
     NAME: resnet  # fcn, resnet, resnet_p,
@@ -43,7 +43,7 @@ MODEL:
     L1: 0.0
     L2: 0.0
 
-    SAVE_DIR: /home/charon/project/representation_paths/models/
+    SAVE_DIR: /data2/charon/reppaths/models/
 
 
 
@@ -65,16 +65,16 @@ OPTIMIZATION:
     LR_DECAY_STEPS: 20
     LR_DECAY_RATE: 0.5
     LR_DECAY_MIN_LR: 0.00001
-    PATIENCE: 200
+    PATIENCE: 100
     ACC_GRADIENT_STEPS: 1
 
 LOG:
     NAME: train_log
-    PATH: /home/charon/project/representation_paths/log/
+    PATH: /data2/charon/reppaths/log/
 
 PRECISION: 32
 
-DEVICES: [0]
+GPUS: [0]
 
 STRATEGY: None
 

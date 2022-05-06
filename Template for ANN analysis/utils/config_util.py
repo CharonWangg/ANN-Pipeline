@@ -1,3 +1,5 @@
+from copy import copy
+
 import yaml
 import pandas as pd
 from .log_util import match_hparams, non_log_hparams
@@ -30,9 +32,9 @@ def load_model_path_by_csv(root, hparams=None, mode='train'):
             else:
                 # return the best val_acc model path
                 load_path = df.groupby(by="uid").get_group(cur_uid)
-                load_path = df.iloc[0]["model_path"] if load_path.shape[0] == 1 else load_path.sorted_values(by="val_acc", ascending=False)["model_path"].values[0]
+                load_path = load_path.iloc[0]["model_path"] if load_path.shape[0] == 1 else load_path.sorted_values(by="val_acc", ascending=False)["model_path"].values[0]
                 print('Loading the best model of uid {} from {}'.format(cur_uid, load_path))
-                return load_path
+                return load_path if not pd.isna(load_path) else None
         else:
             print("The csv file does not exist, will create one during training.")
             return None
@@ -42,7 +44,7 @@ def load_model_path_by_csv(root, hparams=None, mode='train'):
         df = pd.read_csv(csv_path)
         # exclude the inference hparams that could be different from training hparams
         hparams.pop("inference_seed")
-        hparams.pop("devices")
+        hparams.pop("gpus")
         try:
             for k, v in hparams.items():
                 df = df.groupby(by=k).get_group(v)
@@ -193,7 +195,7 @@ def args_setup(cfg_path='./config.yaml'):
     parser.set_defaults(max_epochs=cfg["OPTIMIZATION"]["MAX_EPOCHS"])
     parser.set_defaults(accumulate_grad_batches=cfg["OPTIMIZATION"]["ACC_GRADIENT_STEPS"])
     parser.set_defaults(accelerator="auto")
-    parser.set_defaults(devices=cfg["DEVICES"])
+    parser.set_defaults(gpus=cfg["GPUS"])
     parser.set_defaults(strategy=cfg["STRATEGY"])
     parser.set_defaults(precision=cfg["PRECISION"])
     parser.set_defaults(limit_train_batches=cfg["DATA"]["NUM_TRAIN"], type=float)
@@ -211,14 +213,23 @@ def args_setup(cfg_path='./config.yaml'):
     if str(args.strategy).lower() == "none":
         args.strategy = None
     # parse the continuous devices argument if it is a string
-    if isinstance(args.devices, str):
-        if "[" in args.devices:
-            args.devices = ast.literal_eval(args.devices)
+    if isinstance(args.gpus, str):
+        if "[" in args.gpus:
+            args.gpus = ast.literal_eval(args.gpus)
         else:
-            args.devices = int(args.devices)
+            args.gpus = [int(g) for g in args.gpus]
+        args.devices = len(args.gpus)
+    elif isinstance(args.gpus, int):
+        args.gpus = [args.gpus]
+        args.devices = 1
+    elif isinstance(args.gpus, list):
+        args.devices = len(args.gpus)
 
-    # args.hidden_size = configure_hidden_size(cfg["MODEL"]["HIDDEN_SIZE"], cfg["MODEL"]["NUM_HIDDEN_LAYERS"])
-    # args.projection_size = configure_hidden_size(cfg["MODEL"]["PROJECTION_SIZE"], cfg["MODEL"]["NUM_HIDDEN_LAYERS"])
+    # sync batch size with devices
+    if args.devices > 1:
+        args.sync_batchnorm = True
+    args.auto_select_gpus = False
+
     return args
 
 def configure_args(cfg_path, hparams):
@@ -226,11 +237,6 @@ def configure_args(cfg_path, hparams):
     # align other args with hparams args
     args = vars(args)
     args.update(hparams)
-    # align the input size (int) to list
-    # if isinstance(args["hidden_size"], int):
-    #     args["hidden_size"] = [args["hidden_size"]] * args["num_hidden_layers"]
-    # if isinstance(args["projection_size"], int):
-    #     args["projection_size"] = [args["projection_size"]] * args["num_hidden_layers"]
     args = argparse.Namespace(**args)
 
     return args
