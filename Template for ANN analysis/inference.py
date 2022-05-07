@@ -26,6 +26,7 @@ def main(args, hparams):
     # check the approximate dimension of pixels
     # dim = approx_dataloader_dimensionality(data_module)
     # inference
+    # a list of batches results
     layers_output = trainer.predict(model, data_module, ckpt_path=load_path)  # {f"h_{i}": torch.Tensor}
     return layers_output
 
@@ -37,6 +38,8 @@ if __name__ == '__main__':
                "run": 0, "seed": 7,
                "inference_seed": 42, "gpus": 0}
 
+    # will search the given hparams in the model_log.csv and return the best model path of which
+    # models' hparams contain the given hparams
     args = configure_args(cfg_path, hparams)
     # inference
     '''
@@ -45,5 +48,5 @@ if __name__ == '__main__':
      "labels"(raw label) } Unranked
     '''
     layers_output = main(args, hparams)
-    print(layers_output)
+
 

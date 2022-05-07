@@ -136,7 +136,7 @@ def args_setup(cfg_path='./config.yaml'):
     parser.add_argument('--valid_batch_size', default=cfg["DATA"]["VALID_BATCH_SIZE"], type=int)
     parser.add_argument('--test_batch_size', default=cfg["DATA"]["TEST_BATCH_SIZE"], type=int)
     parser.add_argument('--train_size', default=cfg["DATA"]["TRAIN_SIZE"], type=int)
-    parser.add_argument('--class_num', default=cfg["DATA"]["CLASS_NUM"], type=int)
+    parser.add_argument('--num_classes', default=cfg["DATA"]["CLASS_NUM"], type=int)
     parser.add_argument('--num_workers', default=cfg["DATA"]["NUM_WORKERS"], type=int)
     # data augmentation
     parser.add_argument('--aug', default=cfg["DATA"]["AUG"], type=bool)
