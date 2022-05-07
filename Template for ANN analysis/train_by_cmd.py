@@ -40,7 +40,7 @@ def load_callbacks(args):
 
     if args.lr_scheduler:
         callbacks.append(plc.LearningRateMonitor(
-            logging_interval='epoch'))
+            logging_interval='step'))
 
     # Disable ProgressBar
     # callbacks.append(plc.progress.TQDMProgressBar(
@@ -71,8 +71,8 @@ def main(args):
 
     callbacks = load_callbacks(args)
     args.callbacks = callbacks
-    trainer = Trainer.from_argparse_args(args)
 
+    trainer = Trainer.from_argparse_args(args)
     trainer.fit(model, data_module, ckpt_path=args.ckpt_path)
     trainer.test(model, data_module)
 

@@ -24,7 +24,7 @@ def main(args, hparams):
 
     trainer = Trainer.from_argparse_args(args)
     # check the approximate dimension of pixels
-    dim = approx_dataloader_dimensionality(data_module)
+    # dim = approx_dataloader_dimensionality(data_module)
     # inference
     layers_output = trainer.predict(model, data_module, ckpt_path=load_path)  # {f"h_{i}": torch.Tensor}
     return layers_output
@@ -34,8 +34,8 @@ if __name__ == '__main__':
     cfg_path = 'config.yaml'
     hparams = {"dataset": "cifar10", "model_name": "resnet_he",
                "depth": 20, "width_multiplier": 1.0,
-               "run": 0,
-               "inference_seed": 42, "devices": [2]}
+               "run": 0, "seed": 7,
+               "inference_seed": 42, "gpus": 0}
 
     args = configure_args(cfg_path, hparams)
     # inference

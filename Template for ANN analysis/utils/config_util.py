@@ -2,7 +2,7 @@ from copy import copy
 
 import yaml
 import pandas as pd
-from .log_util import match_hparams, non_log_hparams
+from .log_util import match_hparams, static_hparams
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 import argparse
@@ -23,11 +23,11 @@ def load_model_path_by_csv(root, hparams=None, mode='train'):
     if mode == "train":
         # concat the root and .csv
         csv_path = root + "models_log.csv"
-        hparams = {k: v for k, v in hparams.items() if k in non_log_hparams}
+        hparams = {k: v for k, v in hparams.items() if k in static_hparams}
         if os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
             df, cur_uid = match_hparams(hparams, df)
-            if (df.loc[df["uid"]==cur_uid, "model_path"]=='').any():
+            if (pd.isna(df.loc[df["uid"]==cur_uid, "model_path"])).any():
                 return None
             else:
                 # return the best val_acc model path

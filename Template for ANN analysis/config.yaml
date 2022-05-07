@@ -10,7 +10,7 @@ DATA:
     NUM_PREDICT: 1.0 # 1.0 means all data
     TRAIN_BATCH_SIZE: 50
     VALID_BATCH_SIZE: 256
-    TEST_BATCH_SIZE: 256
+    TEST_BATCH_SIZE: 1024
 
     TRAIN_SIZE: 1.0
 
@@ -50,7 +50,6 @@ MODEL:
 OPTIMIZATION:
     LOSS: cross_entropy  # cross_entropy, binary_cross_entropy, l1, l2,
 
-    BATCH_SIZE_PER_GPU: 1
     MAX_EPOCHS: 10
 
     # OPTIMIZER

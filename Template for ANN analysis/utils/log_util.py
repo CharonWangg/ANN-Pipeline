@@ -1,17 +1,12 @@
+import numpy as np
 import pandas as pd
-import yaml
 import os
 import torch
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _name, _version
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 """screen hparams to avoid unnecessary information"""
+
 screened_hparams = ["uid", "log_dir", "exp_name", "run", "dataset", "data_dir", "model_name", "model_path", "seed",
                     "train_batch_size", "dropout", "depth", "width_multiplier", "class_num", "loss",
                     "aug", "aug_prob",
@@ -23,8 +18,9 @@ screened_hparams = ["uid", "log_dir", "exp_name", "run", "dataset", "data_dir", 
                     "img_mean", "img_std",
                     "train_loss", "train_acc", "val_loss", "val_acc"]
 
-non_log_hparams = [p for p in screened_hparams if p not in ["log_dir", "model_path", "train_loss", "train_acc", "val_loss", "val_acc", "strategy", "gpus"]]
-
+dynamic_hparams = ["log_dir", "model_path", "cur_epoch", "train_loss", "train_acc", "val_loss", "val_acc", "strategy",
+                   "gpus"]
+static_hparams = [p for p in screened_hparams if p not in dynamic_hparams]
 
 
 def generate_uid(df):
@@ -45,7 +41,9 @@ def match_hparams(hparams, df):
 
     for idx, row in df.iterrows():
         # check if all hparams are in the existed row
-        match = [1 for k, v in hparams.items() if str(row[k]) == str(v)]
+        # to prevent the same hparams with different gpus to be added as different experiments
+        # exclude gpus from the comparison during hparams matching
+        match = [1 for k, v in hparams.items() if row[k] == v or str(row[k]) == str(v)]
         if sum(match) == len(hparams):
             # if all hparams are matched, modify the metric
             cur_uid = row['uid']
@@ -56,13 +54,8 @@ def match_hparams(hparams, df):
         # if not, append a new row
         hparams["uid"] = generate_uid(df)
         cur_uid = hparams["uid"]
-        hparams["train_loss"] = 0
-        hparams["train_acc"] = 0
-        hparams["val_loss"] = 0
-        hparams["val_acc"] = 0
-        hparams["cur_epoch"] = 0
-        hparams["model_path"] = ''
-
+        for param in dynamic_hparams:
+            hparams[param] = None
         df = df.append(hparams, ignore_index=True)
 
     return df, cur_uid
@@ -78,18 +71,15 @@ def hparams2csv(hparams, csv_path):
         df = pd.read_csv(csv_path)
         df, cur_uid = match_hparams(hparams, df)
     else:
-        hparams["train_loss"] = 0
-        hparams["train_acc"] = 0
-        hparams["val_loss"] = 0
-        hparams["val_acc"] = 0
-        hparams["cur_epoch"] = 0
-        hparams["model_path"] = ''
+        for param in dynamic_hparams:
+            hparams[param] = None
         df = pd.DataFrame(columns=hparams.keys())
         hparams["uid"] = generate_uid(df)
         df = df.append(hparams, ignore_index=True)
         # reorder the columns
         df = df[screened_hparams]
         cur_uid = hparams["uid"]
+
     df.to_csv(csv_path, index=False)
     return cur_uid
 
@@ -114,12 +104,15 @@ class CSVModelCheckpoint(ModelCheckpoint):
         super().__init__()
         self.__dict__.update(locals())
         self.csv_index = None
-        self.csv_path = self.hparams["save_dir"] + "/models_log.csv"
-        if hparams["ckpt_path"] is not None:
-            self.hparams = {k: hparams[k] for k in non_log_hparams if k in hparams}
+        self.csv_path = hparams["save_dir"] + "/models_log.csv"
+        self.log_dir = hparams["log_dir"] + hparams["exp_name"]
+        self.strategy = hparams["strategy"]
+        self.gpus = hparams["gpus"]
+        if os.path.exists(self.csv_path):
+            hparams = {k: hparams[k] for k in static_hparams if k in hparams}
         else:
-            self.hparams = {k: hparams[k] for k in screened_hparams if k in hparams}
-        self.cur_uid = int(hparams2csv(self.hparams, self.csv_path))
+            hparams = {k: hparams[k] for k in screened_hparams if k in hparams}
+        self.cur_uid = int(hparams2csv(hparams, self.csv_path))
 
     # rewrite the save function to save the hparams into csv
     def _update_best_and_save(self, current, trainer, monitor_candidates):
@@ -171,9 +164,13 @@ class CSVModelCheckpoint(ModelCheckpoint):
         df.loc[df["uid"] == self.cur_uid, "val_loss"] = monitor_candidates["val_loss"].detach().cpu().numpy()
         df.loc[df["uid"] == self.cur_uid, "val_acc"] = monitor_candidates["val_acc"].detach().cpu().numpy()
         df.loc[df["uid"] == self.cur_uid, "cur_epoch"] = int(monitor_candidates["epoch"])
-        if f"version_{trainer.logger.version}" not in df.loc[df["uid"] == self.cur_uid]["log_dir"].values[0]:
-            df.loc[df["uid"] == self.cur_uid, "log_dir"] += df.loc[df["uid"] == self.cur_uid, "exp_name"] + "/" + \
-                                                           f"version_{trainer.logger.version}"
+
+        if pd.isna(df.loc[df["uid"] == self.cur_uid]["log_dir"]).any() or \
+                f"version_{trainer.logger.version}" not in df.loc[df["uid"] == self.cur_uid]["log_dir"].values[0]:
+            df.loc[df["uid"] == self.cur_uid, "log_dir"] = self.log_dir + "/" + f"version_{trainer.logger.version}"
+            df.loc[df["uid"] == self.cur_uid, "strategy"] = str(self.strategy)
+            df.loc[df["uid"] == self.cur_uid, "gpus"] = str(self.gpus)
+
         df.loc[df["uid"] == self.cur_uid, "model_path"] = filepath
         df.to_csv(self.csv_path, index=False)
         ##############################################
