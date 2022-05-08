@@ -10,7 +10,7 @@ from utils import approx_dataloader_dimensionality
 
 def main(args, hparams):
     pl.seed_everything(args.inference_seed)
-    load_path = load_model_path_by_csv(args.save_dir, hparams, mode='inference')
+    load_path = load_model_path_by_csv(args.save_dir, hparams, mode='train')
     print(f'load_path: {load_path}')
     data_module = DataInterface(vars(args))
 
@@ -27,16 +27,17 @@ def main(args, hparams):
     # dim = approx_dataloader_dimensionality(data_module)
     # inference
     # a list of batches results
-    layers_output = trainer.predict(model, data_module, ckpt_path=load_path)  # {f"h_{i}": torch.Tensor}
+    layers_output = trainer.test(model, data_module, ckpt_path=load_path)  # {f"h_{i}": torch.Tensor}
     return layers_output
 
 
 if __name__ == '__main__':
     cfg_path = 'config.yaml'
     hparams = {"dataset": "cifar10", "model_name": "resnet_he",
-               "depth": 20, "width_multiplier": 1.0,
+               "depth": 14, "width_multiplier": 1.0,
+               "test_batch_size": 256,
                "run": 0, "seed": 7,
-               "inference_seed": 42, "gpus": 0}
+               "inference_seed": 7, "gpus": 0}
 
     # will search the given hparams in the model_log.csv and return the best model path of which
     # models' hparams contain the given hparams

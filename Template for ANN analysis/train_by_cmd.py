@@ -54,13 +54,13 @@ def main(args):
     # torch.backends.cudnn.benchmark = True
     load_path = load_model_path_by_csv(args.save_dir, args)
     # print(f'load_path: {load_path}')
-    data_module = DataInterface(vars(args))
+    data_module = DataInterface(**vars(args))
 
     if load_path is None:
-        model = ModelInterface(vars(args))
+        model = ModelInterface(**vars(args))
         args.ckpt_path = None
     else:
-        model = ModelInterface(vars(args))
+        model = ModelInterface(**vars(args))
         args.ckpt_path = load_path
         # print('Found checkpoint, stop training.')
         # return 0

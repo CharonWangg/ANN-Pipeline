@@ -8,11 +8,10 @@ from torch.utils.data.sampler import WeightedRandomSampler
 
 class DataInterface(pl.LightningDataModule):
 
-    def __init__(self, kwargs):
+    def __init__(self, **kwargs):
         super().__init__()
         # load args into attributes
-        self.__dict__.update(kwargs)
-        self.kwargs = kwargs
+        self.save_hyperparameters()
         self.load_data_module()
 
     def setup(self, stage=None):
@@ -39,20 +38,24 @@ class DataInterface(pl.LightningDataModule):
     #     return DataLoader(self.trainset, batch_size=self.batch_size, num_workers=self.num_workers, sampler = sampler)
 
     def train_dataloader(self):
-        return DataLoader(self.trainset, batch_size=self.train_batch_size, num_workers=self.num_workers, shuffle=True)
+        return DataLoader(self.trainset, batch_size=self.hparams.train_batch_size, num_workers=self.hparams.num_workers,
+                          shuffle=True)
 
     def val_dataloader(self):
-        return DataLoader(self.valset, batch_size=self.valid_batch_size, num_workers=self.num_workers, shuffle=False)
+        return DataLoader(self.valset, batch_size=self.hparams.valid_batch_size, num_workers=self.hparams.num_workers,
+                          shuffle=False)
 
     def test_dataloader(self):
-        return DataLoader(self.testset, batch_size=self.test_batch_size, num_workers=self.num_workers, shuffle=False)
+        return DataLoader(self.testset, batch_size=self.hparams.test_batch_size, num_workers=self.hparams.num_workers,
+                          shuffle=False)
 
     def predict_dataloader(self):
-        return DataLoader(self.predictset, batch_size=self.test_batch_size, num_workers=self.num_workers, shuffle=False)
+        return DataLoader(self.predictset, batch_size=self.hparams.test_batch_size,
+                          num_workers=self.hparams.num_workers, shuffle=False)
 
     def load_data_module(self):
         # self.dataset: string name (mnist, omniglot, cifar10, diy)
-        name = self.dataset
+        name = self.hparams.dataset
         # add _data to the end of the name to match the name of the module
         name = name + '_data'
 
@@ -74,10 +77,10 @@ class DataInterface(pl.LightningDataModule):
         """
         # lowercase all the arguments
         class_args = inspect.getfullargspec(self.data_module.__init__).args[1:]
-        inkeys = self.kwargs.keys()
+        inkeys = self.hparams.keys()
         args1 = {}
         for arg in class_args:
             if arg in inkeys:
-                args1[arg] = self.kwargs[arg]
+                args1[arg] = getattr(self.hparams, arg)
         args1.update(other_args)
         return self.data_module(**args1)

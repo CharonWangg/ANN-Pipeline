@@ -6,9 +6,18 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 """screen hparams to avoid unnecessary information"""
+all_hparams = ["cfg", "seed", "train_batch_size", "valid_batch_size", "test_batch_size", "num_classes", "num_workers",
+               "limit_train_batches", "limit_val_batches", "limit_test_batches", "limit_predict_batches",
+               "train_size", "img_mean", "img_std", "aug", "aug_prob",
+               "lr", "lr_scheduler", "lr_warmup_epochs", "lr_decay_steps", "lr_decay_rate",
+               "lr_decay_min_lr", "dataset", "data_dir", "model_name", "loss"
+               "momentum", "weight_decay", "max_epochs", "gpus", "optimizer", "l1", "l2", "patience",
+               "depth", "width_multiplier", "input_size", "output_size", "num_hidden_layers", "dropout", "activation",
+               "max_epochs", "accumulate_grad_batches", "gpus", "strategy", "precision",
+               "log_dir", "exp_name", "run", "save_dir"]
 
 screened_hparams = ["uid", "log_dir", "exp_name", "run", "dataset", "data_dir", "model_name", "model_path", "seed",
-                    "train_batch_size", "dropout", "depth", "width_multiplier", "class_num", "loss",
+                    "train_batch_size", "dropout", "depth", "width_multiplier", "num_classes", "loss",
                     "aug", "aug_prob",
                     "lr", "lr_scheduler", "lr_warmup_epochs", "lr_decay_steps", "lr_decay_rate", "lr_decay_min_lr",
                     "max_epochs", "cur_epoch", "optimizer", "weight_decay", "momentum", "l1", "l2", "patience",

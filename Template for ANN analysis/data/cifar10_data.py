@@ -12,13 +12,10 @@ from sklearn.model_selection import train_test_split
 
 class Cifar10Data(data.Dataset):
     def __init__(self, data_dir=r'data/cifar10',
-                 class_num=9,
                  ds_type="train",
                  aug=False,
                  train_size=0.8,
                  aug_prob=0.5,
-                 img_mean=(0.485, 0.456, 0.406),
-                 img_std=(0.229, 0.224, 0.225),
                  seed=42):
         # Set all input args as attributes
         self.__dict__.update(locals())

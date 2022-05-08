@@ -2,7 +2,7 @@ from copy import copy
 
 import yaml
 import pandas as pd
-from .log_util import match_hparams, static_hparams
+from .log_util import match_hparams, all_hparams, static_hparams
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 import argparse
@@ -10,6 +10,32 @@ import os
 import ast
 from pathlib2 import Path
 
+
+# flatten the .yaml hierarchy dict
+def flatten_dict(d, key=''):
+    items = []
+    for k, v in d.items():
+        new_key = key + k + '_'
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key).items())
+        else:
+            new_key = new_key.rstrip('_')
+            items.append((new_key.lower(), v))
+    return dict(items)
+
+
+def yaml_to_kwargs(cfg_path):
+    yaml_dict = yaml.safe_load(open(cfg_path))
+    kwargs = flatten_dict(yaml_dict)
+    new_kwargs = {}
+    for long_k in kwargs:
+        for short_k in all_hparams:
+            if short_k in long_k:
+                new_kwargs[short_k] = kwargs[long_k]
+                break
+    print(len(kwargs))
+    print(len(new_kwargs))
+    return new_kwargs
 
 # load model in uid format by searching its hparams in a csv file
 def load_model_path_by_csv(root, hparams=None, mode='train'):
@@ -122,13 +148,11 @@ def configure_hidden_size(hidden_size, num_hidden_layers):
     return hidden_size
 
 
-def args_setup(cfg_path='./config.yaml'):
+def args_setup(cfg_path='config.yaml'):
     cfg = yaml.safe_load(open(cfg_path))
     parser = ArgumentParser()
     # init
     parser.add_argument('--cfg', type=str, default=cfg_path, help='config file path')
-    # parser.add_argument('--stage', type=str, default="fit", choices=["fit", "test"])
-    # parser.add_argument('--gpu', type=str, default='0', help='gpu id')
     parser.add_argument('--seed', default=cfg["SEED"], type=int)
     parser.add_argument('--inference_seed', default=cfg["SEED"], type=int)
     # data
@@ -136,7 +160,7 @@ def args_setup(cfg_path='./config.yaml'):
     parser.add_argument('--valid_batch_size', default=cfg["DATA"]["VALID_BATCH_SIZE"], type=int)
     parser.add_argument('--test_batch_size', default=cfg["DATA"]["TEST_BATCH_SIZE"], type=int)
     parser.add_argument('--train_size', default=cfg["DATA"]["TRAIN_SIZE"], type=int)
-    parser.add_argument('--num_classes', default=cfg["DATA"]["CLASS_NUM"], type=int)
+    parser.add_argument('--num_classes', default=cfg["DATA"]["NUM_CLASSES"], type=int)
     parser.add_argument('--num_workers', default=cfg["DATA"]["NUM_WORKERS"], type=int)
     # data augmentation
     parser.add_argument('--aug', default=cfg["DATA"]["AUG"], type=bool)
@@ -231,6 +255,78 @@ def args_setup(cfg_path='./config.yaml'):
     args.auto_select_gpus = False
 
     return args
+
+
+def kwargs_setup(cfg_path='./config.yaml'):
+    kwargs = {}
+    cfg = yaml.safe_load(open(cfg_path))
+    # init
+    kwargs['cfg'] = cfg_path
+    kwargs['seed'] = cfg["SEED"]
+    kwargs['inference_seed'] = cfg["SEED"]
+
+    # data
+    kwargs['dataset'] = cfg["DATA"]["DATASET"]
+    kwargs['data_dir'] = cfg["DATA"]["DATA_PATH"]
+    kwargs['train_batch_size'] = cfg["DATA"]["TRAIN_BATCH_SIZE"]
+    kwargs['valid_batch_size'] = cfg["DATA"]["VALID_BATCH_SIZE"]
+    kwargs['test_batch_size'] = cfg["DATA"]["TEST_BATCH_SIZE"]
+    kwargs['limit_train_batches'] = cfg["DATA"]["NUM_TRAIN"]
+    kwargs['limit_val_batches'] = cfg["DATA"]["NUM_VAL"]
+    kwargs['limit_test_batches'] = cfg["DATA"]["NUM_TEST"]
+    kwargs['limit_predict_batches'] = cfg["DATA"]["NUM_PREDICT"]
+    kwargs['train_size'] = cfg["DATA"]["TRAIN_SIZE"]
+    kwargs['num_classes'] = cfg["DATA"]["NUM_CLASSES"]
+    kwargs['num_workers'] = cfg["DATA"]["NUM_WORKERS"]
+    kwargs['aug'] = cfg["DATA"]["AUG"]
+    kwargs['aug_prob'] = cfg["DATA"]["AUG_PROB"]
+
+    # model
+    kwargs['model_name'] = cfg["MODEL"]["NAME"]
+    kwargs['input_size'] = cfg["MODEL"]["INPUT_SIZE"]
+    kwargs['output_size'] = cfg["MODEL"]["OUTPUT_SIZE"]
+    kwargs['num_hidden_layers'] = cfg["MODEL"]["NUM_HIDDEN_LAYERS"]
+    kwargs['dropout'] = cfg["MODEL"]["DROPOUT"]
+    kwargs['activation'] = cfg["MODEL"]["ACTIVATION"]
+    kwargs['l1'] = cfg["MODEL"]["L1"]
+    kwargs['l2'] = cfg["MODEL"]["L2"]
+    kwargs['save_dir'] = cfg["MODEL"]["SAVE_DIR"]
+    # Specific Model Hyperparameters for ResNet
+    kwargs['depth'] = cfg["MODEL"]["RESNET"]["DEPTH"]
+    kwargs['width_multiplier'] = cfg["MODEL"]["RESNET"]["WIDTH_MULTIPLIER"]
+
+    # optimization
+    kwargs['loss'] = cfg["OPTIMIZATION"]["LOSS"]
+    kwargs['lr'] = cfg["OPTIMIZATION"]["LR"]
+    kwargs['max_epochs'] = cfg["OPTIMIZATION"]["MAX_EPOCHS"]
+    kwargs['momentum'] = cfg["OPTIMIZATION"]["MOMENTUM"]
+    kwargs['weight_decay'] = cfg["OPTIMIZATION"]["WEIGHT_DECAY"]
+    kwargs['lr_scheduler'] = cfg["OPTIMIZATION"]["LR_SCHEDULER"]
+    kwargs['lr_warmup_epochs'] = cfg["OPTIMIZATION"]["LR_WARMUP_EPOCHS"]
+    kwargs['lr_decay_steps'] = cfg["OPTIMIZATION"]["LR_DECAY_STEPS"]
+    kwargs['lr_decay_rate'] = cfg["OPTIMIZATION"]["LR_DECAY_RATE"]
+    kwargs['lr_decay_min_lr'] = cfg["OPTIMIZATION"]["LR_DECAY_MIN_LR"]
+    kwargs['patience'] = cfg["OPTIMIZATION"]["PATIENCE"]
+    kwargs['accumulate_grad_batches'] = cfg["OPTIMIZATION"]["ACC_GRADIENT_STEPS"]
+    kwargs['optimizer'] = cfg["OPTIMIZATION"]["OPTIMIZER"]
+
+    # log
+    kwargs['log_dir'] = cfg["LOG"]["PATH"]
+    kwargs['exp_name'] = cfg["LOG"]["NAME"]
+    kwargs['run'] = cfg["LOG"]["RUN"]
+
+    # device
+    kwargs['accelerator'] = "auto"
+    kwargs['gpus'] = cfg["GPUS"]
+    kwargs['precision'] = cfg["PRECISION"]
+    kwargs['strategy'] = cfg["STRATEGY"]
+    kwargs['precision'] = cfg["PRECISION"]
+    kwargs['deterministic'] = True
+    if str(kwargs['strategy']).lower() == "none":
+        kwargs['strategy'] = None
+
+    return kwargs
+
 
 def configure_args(cfg_path, hparams):
     args = args_setup(cfg_path)

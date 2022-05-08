@@ -1,13 +1,13 @@
 #! /bin/bash
 PYTHON=/home/charon/anaconda3/envs/ml37/bin/python
-JOBS=2
+JOBS=1
 DELAY=5
 # Next: width: 10; seed: 7, 42, 1234, 2022, 3057
 # data
 DATASET=(cifar10)
 # model
 MODEL_NAME=(resnet_he)
-DEPTH=(26 38)
+DEPTH=(38)
 WIDTH_MULTIPLIER=(4)
 # optimization
 LR=(0.12)
@@ -23,9 +23,9 @@ AUG_PROB=(0.5)
 # hardware
 STRATEGY=None
 PRECISION=(32)
-GPUS=(3)
+GPUS=(1)
 # randomness
-SEED=(7 42 1234 2022 3057)
+SEED=(2022 3057)
 # logging
 EXP_NAME=(resnet_he_cifar10_width_repro)
 RUN=(0)
