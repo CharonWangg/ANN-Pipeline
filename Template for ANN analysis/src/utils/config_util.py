@@ -226,6 +226,7 @@ def args_setup(cfg_path='config.yaml'):
     parser.set_defaults(limit_val_batches=cfg["DATA"]["NUM_VAL"], type=float)
     parser.set_defaults(limit_test_batches=cfg["DATA"]["NUM_TEST"], type=float)
     parser.set_defaults(limit_predict_batches=cfg["DATA"]["NUM_PREDICT"], type=float)
+    parser.set_defaults(val_check_interval=cfg["LOG"]["VAL_CHECK_INTERVAL"], type=int)
     parser.set_defaults(deterministic=True)
 
     args = parser.parse_args()

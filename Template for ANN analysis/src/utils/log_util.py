@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import pandas as pd
 import os
@@ -11,23 +13,26 @@ all_hparams = ["cfg", "seed", "train_batch_size", "valid_batch_size", "test_batc
                "train_size", "img_mean", "img_std", "aug", "aug_prob",
                "lr", "lr_scheduler", "lr_warmup_epochs", "lr_decay_steps", "lr_decay_rate",
                "lr_decay_min_lr", "dataset", "data_dir", "model_name", "loss"
-               "momentum", "weight_decay", "max_epochs", "gpus", "optimizer", "l1", "l2", "patience",
+                                                                       "momentum", "weight_decay", "max_epochs", "gpus",
+               "optimizer", "l1", "l2", "patience",
                "depth", "width_multiplier", "input_size", "output_size", "num_hidden_layers", "dropout", "activation",
                "max_epochs", "accumulate_grad_batches", "gpus", "strategy", "precision",
-               "log_dir", "exp_name", "run", "save_dir"]
+               "val_check_interval", "log_dir", "exp_name", "run", "save_dir"]
 
 screened_hparams = ["uid", "log_dir", "exp_name", "run", "dataset", "data_dir", "model_name", "model_path", "seed",
                     "train_batch_size", "dropout", "depth", "width_multiplier", "num_classes", "loss",
                     "aug", "aug_prob",
                     "lr", "lr_scheduler", "lr_warmup_epochs", "lr_decay_steps", "lr_decay_rate", "lr_decay_min_lr",
-                    "max_epochs", "cur_epoch", "optimizer", "weight_decay", "momentum", "l1", "l2", "patience",
+                    "max_epochs", "cur_epoch", "cur_step", "optimizer", "weight_decay", "momentum", "l1", "l2",
+                    "patience",
                     "accumulate_grad_batches",
                     "limit_train_batches", "limit_val_batches", "limit_test_batches", "limit_predict_batches",
                     "accelerator", "gpus", "strategy", "sync_batchnorm", "precision",
-                    "img_mean", "img_std",
+                    "img_mean", "img_std", "val_check_interval",
                     "train_loss", "train_acc", "val_loss", "val_acc"]
 
-dynamic_hparams = ["log_dir", "model_path", "cur_epoch", "train_loss", "train_acc", "val_loss", "val_acc", "strategy",
+dynamic_hparams = ["log_dir", "model_path", "cur_epoch", "cur_step", "train_loss", "train_acc", "val_loss", "val_acc",
+                   "strategy",
                    "gpus"]
 static_hparams = [p for p in screened_hparams if p not in dynamic_hparams]
 
@@ -113,15 +118,35 @@ class CSVModelCheckpoint(ModelCheckpoint):
         super().__init__()
         self.__dict__.update(locals())
         self.csv_index = None
-        self.csv_path = hparams["save_dir"] + "/models_log.csv"
+        self.csv_path = hparams["save_dir"] + hparams["exp_name"] + "/models_log.csv"
         self.log_dir = hparams["log_dir"] + hparams["exp_name"]
         self.strategy = hparams["strategy"]
         self.gpus = hparams["gpus"]
         if os.path.exists(self.csv_path):
             hparams = {k: hparams[k] for k in static_hparams if k in hparams}
         else:
+            if not os.path.exists(hparams["save_dir"] + hparams["exp_name"]):
+                os.makedirs(hparams["save_dir"] + hparams["exp_name"])
             hparams = {k: hparams[k] for k in screened_hparams if k in hparams}
         self.cur_uid = int(hparams2csv(hparams, self.csv_path))
+
+    # used to generate the untrained checkpoint
+    def init_checkpoint(self, trainer, metrics):
+        loss, acc = metrics["test_loss"], metrics["test_acc"]
+        path = self.dirpath + f"uid={self.cur_uid}-model_name={self.hparams['model_name']}-dataset={self.hparams['dataset']}" \
+                                                           f"-epoch=0-step=0-val_acc={acc:.3f}.ckpt"
+        trainer.save_checkpoint(path)
+        print(f"Saved first checkpoint to: {path}!")
+        df = pd.read_csv(self.csv_path)
+        df.loc[df["uid"] == self.cur_uid, "log_dir"] = self.log_dir + "/" + f"version_{trainer.logger.version}"
+        df.loc[df["uid"] == self.cur_uid, "strategy"] = str(self.strategy)
+        df.loc[df["uid"] == self.cur_uid, "gpus"] = str(self.gpus)
+        df.loc[df["uid"] == self.cur_uid, "cur_epoch"] = 0
+        df.loc[df["uid"] == self.cur_uid, "model_path"] = path
+        df.loc[df["uid"] == self.cur_uid, "cur_step"] = 0
+        df.loc[df["uid"] == self.cur_uid, "val_acc"] = acc
+        df.loc[df["uid"] == self.cur_uid, "val_loss"] = loss
+        df.to_csv(self.csv_path, index=False)
 
     # rewrite the save function to save the hparams into csv
     def _update_best_and_save(self, current, trainer, monitor_candidates):
@@ -167,20 +192,37 @@ class CSVModelCheckpoint(ModelCheckpoint):
         #################################################
         # (extra insertion) save the hparams into csv
         df = pd.read_csv(self.csv_path)
-        df["uid"] = df["uid"].astype(int)
-        df.loc[df["uid"] == self.cur_uid, "train_loss"] = monitor_candidates["train_loss_epoch"].detach().cpu().numpy()
-        df.loc[df["uid"] == self.cur_uid, "train_acc"] = monitor_candidates["train_acc"].detach().cpu().numpy()
-        df.loc[df["uid"] == self.cur_uid, "val_loss"] = monitor_candidates["val_loss"].detach().cpu().numpy()
-        df.loc[df["uid"] == self.cur_uid, "val_acc"] = monitor_candidates["val_acc"].detach().cpu().numpy()
-        df.loc[df["uid"] == self.cur_uid, "cur_epoch"] = int(monitor_candidates["epoch"])
+        row = {}
+        row["uid"] = int(self.cur_uid)
+        row["val_loss"] = monitor_candidates["val_loss_epoch"].detach().cpu().numpy()
+        row["val_acc"] = monitor_candidates["val_acc_epoch"].detach().cpu().numpy()
+        row["cur_epoch"] = int(monitor_candidates["epoch"])
+        row["cur_step"] = int(monitor_candidates["step"])
 
         if pd.isna(df.loc[df["uid"] == self.cur_uid]["log_dir"]).any() or \
                 f"version_{trainer.logger.version}" not in df.loc[df["uid"] == self.cur_uid]["log_dir"].values[0]:
-            df.loc[df["uid"] == self.cur_uid, "log_dir"] = self.log_dir + "/" + f"version_{trainer.logger.version}"
-            df.loc[df["uid"] == self.cur_uid, "strategy"] = str(self.strategy)
-            df.loc[df["uid"] == self.cur_uid, "gpus"] = str(self.gpus)
+            row["log_dir"] = self.log_dir + "/" + f"version_{trainer.logger.version}"
+            row["strategy"] = str(self.strategy)
+            row["gpus"] = str(self.gpus)
+            row["cur_epoch"] = int(monitor_candidates["epoch"])
 
-        df.loc[df["uid"] == self.cur_uid, "model_path"] = filepath
+        row["model_path"] = filepath
+        if self.every_n_train_steps is not None and self.every_n_train_steps > 0:
+            if "train_loss" in monitor_candidates:
+                row["train_loss"] = monitor_candidates["train_loss"].detach().cpu().numpy()
+                row["train_acc"] = monitor_candidates["train_acc"].detach().cpu().numpy()
+            # add a row for the current step
+            old_row = df.loc[df["uid"] == self.cur_uid].iloc[0].to_dict()
+            old_row.update(row)
+            df = df.append(old_row, ignore_index=True)
+        else:
+            if "train_loss_epoch" in monitor_candidates:
+                row["train_loss"] = monitor_candidates["train_loss_epoch"].detach().cpu().numpy()
+                row["train_acc"] = monitor_candidates["train_acc_epoch"].detach().cpu().numpy()
+            # modify the row for the current step
+            old_row = df.loc[df["uid"] == self.cur_uid].iloc[0].to_dict()
+            old_row.update(row)
+            df.loc[df["uid"] == self.cur_uid] = old_row
         df.to_csv(self.csv_path, index=False)
         ##############################################
 

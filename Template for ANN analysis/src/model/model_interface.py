@@ -19,7 +19,6 @@ class ModelInterface(pl.LightningModule):
         return self.model(img)
 
     def training_step(self, batch, batch_idx):
-        # img, labels, filename = batch
         img, labels = batch
         out = self(img)["logits"]
         train_loss = self.loss_function(out, labels)
@@ -27,7 +26,7 @@ class ModelInterface(pl.LightningModule):
         preds = torch.argmax(out, dim=-1)
         train_acc = accuracy(preds, labels)
 
-        self.log('train_acc', train_acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('train_acc', train_acc, on_step=True, on_epoch=True, prog_bar=True)
         self.log('train_loss', train_loss, on_step=True, on_epoch=True, prog_bar=True)
 
         train_loss += self.hparams.l1 * self.l1_norm() + self.hparams.l2 * self.l2_norm()
@@ -39,11 +38,11 @@ class ModelInterface(pl.LightningModule):
         out = self(img)["logits"]
         loss = self.loss_function(out, labels)
         out = torch.softmax(out, dim=-1)
-        out_digit = out.argmax(axis=-1)
-        # self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
-        correct_num = sum(labels == out_digit).cpu().detach()
+        preds = torch.argmax(out, dim=-1)
+        acc = accuracy(preds, labels)
 
-        return (correct_num, len(out_digit), loss.detach())
+        self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("val_acc", acc, on_step=True, on_epoch=True,  prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         img, labels = batch
@@ -61,15 +60,15 @@ class ModelInterface(pl.LightningModule):
         out = self(img)
         return out
 
-    def validation_epoch_end(self, validation_step_outputs):
-        # outputs is a list of output from validation_step
-        correct_num = sum([x[0] for x in validation_step_outputs])
-        total_num = sum([x[1] for x in validation_step_outputs])
-        loss = sum([x[2] for x in validation_step_outputs]) / len(validation_step_outputs)
-        val_acc = correct_num / total_num
-
-        self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log('val_acc', val_acc, on_step=False, on_epoch=True, prog_bar=True)
+    # def validation_epoch_end(self, validation_step_outputs):
+    #     # outputs is a list of output from validation_step
+    #     correct_num = sum([x[0] for x in validation_step_outputs])
+    #     total_num = sum([x[1] for x in validation_step_outputs])
+    #     loss = sum([x[2] for x in validation_step_outputs]) / len(validation_step_outputs)
+    #     val_acc = correct_num / total_num
+    #
+    #     self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+    #     self.log('val_acc', val_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def l1_norm(self):
         return sum(p.abs().sum() for p in self.model.parameters() if p.ndim >= 2)
@@ -185,7 +184,7 @@ class ModelInterface(pl.LightningModule):
         try:
             Model = getattr(importlib.import_module(
                 '.' + name, package=__package__), camel_name)
-        except:
+        except ImportError:
             raise ValueError(
                 f'Invalid Module File Name or Invalid Class Name {name}.{camel_name}!')
         self.model = self.instancialize(Model)

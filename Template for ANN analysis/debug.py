@@ -1,8 +1,6 @@
-import json
-
 import pandas as pd
 
-from model.common import resnet_cifar
+from pipeline.src.utils import yaml_to_kwargs
 
 
 def get_model_size(model):
@@ -13,7 +11,10 @@ def get_model_size(model):
 
 
 if __name__ == '__main__':
-    df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
-    print(df)
-    df = df.append({"A": 3}, ignore_index=True)
-    print(df)
+    df = pd.read_csv("/data2/charon/reppaths/models/resnet_he_cifar10_width_repro/models_log.csv")
+    df["val_check_interval"] = 1.0
+    df.to_csv("/data2/charon/reppaths/models/resnet_he_cifar10_width_repro/models_log.csv")
+    df = pd.read_csv("/data2/charon/reppaths/models/resnet_he_cifar10_width_repro/models_log.csv")
+    print(df["val_check_interval"])
+
+

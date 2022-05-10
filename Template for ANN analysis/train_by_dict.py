@@ -1,16 +1,14 @@
 """
 This main training entrance of the whole project.
 """
-import torch
 import pytorch_lightning as pl
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from utils.log_util import CSVModelCheckpoint
+from pipeline.src.utils.log_util import CSVModelCheckpoint
 import pytorch_lightning.callbacks as plc
-from model import ModelInterface
-from data import DataInterface
-from utils.config_util import args_setup, load_model_path_by_csv, configure_args
+from pipeline.src.model import ModelInterface
+from pipeline.src.data import DataInterface
+from pipeline.src.utils.config_util import load_model_path_by_csv, configure_args
 
 
 def load_callbacks(args):
@@ -79,7 +77,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    cfg_path = 'config.yaml'
+    cfg_path = 'configs/config.yaml'
     # hparams used for training
     hparams = {"dataset": "cifar10", "model_name": "resnet_he",
                "depth": 20, "width_multiplier": 1.0,

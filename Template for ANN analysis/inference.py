@@ -1,11 +1,9 @@
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 
-from model import ModelInterface
-from data import DataInterface
-from utils import load_model_path_by_hparams
-from utils import args_setup, configure_args, load_model_path_by_csv
-from utils import approx_dataloader_dimensionality
+from pipeline.src.model import ModelInterface
+from pipeline.src.data import DataInterface
+from pipeline.src.utils import configure_args, load_model_path_by_csv
 
 
 def main(args, hparams):
@@ -32,7 +30,7 @@ def main(args, hparams):
 
 
 if __name__ == '__main__':
-    cfg_path = 'config.yaml'
+    cfg_path = 'configs/config.yaml'
     hparams = {"dataset": "cifar10", "model_name": "resnet_he",
                "depth": 14, "width_multiplier": 1.0,
                "test_batch_size": 256,

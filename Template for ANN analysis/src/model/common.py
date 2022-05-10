@@ -1,9 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-import sys
-
-sys.path.append('../')
-from utils import Add, Identity
+from ..utils import Add, Identity
 
 
 # activation function parser
