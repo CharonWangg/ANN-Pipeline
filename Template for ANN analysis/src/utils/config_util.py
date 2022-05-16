@@ -196,6 +196,7 @@ def args_setup(cfg_path='config.yaml'):
     parser.add_argument('--l2', default=cfg["MODEL"]["L2"], type=float)
     parser.add_argument('--patience', default=cfg["OPTIMIZATION"]["PATIENCE"], type=int)
     parser.add_argument('--log_dir', default=cfg["LOG"]["PATH"], type=str)
+    parser.add_argument('--comet_api_key', default=cfg["LOG"]["COMET_API_KEY"], type=str)
     parser.add_argument('--exp_name', default=cfg["LOG"]["NAME"], type=str)
     parser.add_argument('--run', default=0, type=int)
     parser.add_argument('--save_dir', default=cfg["MODEL"]["SAVE_DIR"], type=str)

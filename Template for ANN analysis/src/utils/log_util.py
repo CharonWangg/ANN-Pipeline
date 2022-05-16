@@ -129,12 +129,18 @@ class CSVModelCheckpoint(ModelCheckpoint):
                 os.makedirs(hparams["save_dir"] + hparams["exp_name"])
             hparams = {k: hparams[k] for k in screened_hparams if k in hparams}
         self.cur_uid = int(hparams2csv(hparams, self.csv_path))
+        # rename the last checkpoint to the current uid
+        self.CHECKPOINT_NAME_LAST = f'uid={self.cur_uid}-' + \
+                                    f'model_name={hparams["model_name"]}-' + \
+                                    f'dataset={hparams["dataset"]}-' + \
+                                    'last'
+
 
     # used to generate the untrained checkpoint
     def init_checkpoint(self, trainer, metrics):
         loss, acc = metrics["test_loss"], metrics["test_acc"]
         path = self.dirpath + f"uid={self.cur_uid}-model_name={self.hparams['model_name']}-dataset={self.hparams['dataset']}" \
-                                                           f"-epoch=0-step=0-val_acc={acc:.3f}.ckpt"
+                              f"-epoch=0-step=0-val_acc={acc:.3f}.ckpt"
         trainer.save_checkpoint(path)
         print(f"Saved first checkpoint to: {path}!")
         df = pd.read_csv(self.csv_path)
@@ -204,7 +210,6 @@ class CSVModelCheckpoint(ModelCheckpoint):
             row["log_dir"] = self.log_dir + "/" + f"version_{trainer.logger.version}"
             row["strategy"] = str(self.strategy)
             row["gpus"] = str(self.gpus)
-            row["cur_epoch"] = int(monitor_candidates["epoch"])
 
         row["model_path"] = filepath
         if self.every_n_train_steps is not None and self.every_n_train_steps > 0:
@@ -222,7 +227,8 @@ class CSVModelCheckpoint(ModelCheckpoint):
             # modify the row for the current step
             old_row = df.loc[df["uid"] == self.cur_uid].iloc[0].to_dict()
             old_row.update(row)
-            df.loc[df["uid"] == self.cur_uid] = old_row
+            for k, v in old_row.items():
+                df.loc[df["uid"] == self.cur_uid, k] = v
         df.to_csv(self.csv_path, index=False)
         ##############################################
 

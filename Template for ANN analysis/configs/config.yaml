@@ -70,6 +70,7 @@ OPTIMIZATION:
 LOG:
     NAME: train_log
     VAL_CHECK_INTERVAL: 1.0
+    COMET_API_KEY: 0gtDzXpYAKgdFkiEMvw1Y5VcH
     PATH: /data2/charon/reppaths/log/
     RUN: 0
 

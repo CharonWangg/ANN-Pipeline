@@ -1,10 +1,11 @@
 """
 This main training entrance of the whole project.
 """
+import os
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import CometLogger
 import pytorch_lightning.callbacks as plc
 from src.utils import CSVModelCheckpoint
 from src.model import ModelInterface
@@ -14,7 +15,7 @@ from src.utils import args_setup, load_model_path_by_csv
 
 def load_callbacks(args):
     callbacks = []
-    if not args.val_check_interval != 1.0 and isinstance(args.val_check_interval, int):
+    if not isinstance(args.val_check_interval, int):
         # used to control early stopping
         callbacks.append(plc.EarlyStopping(
             monitor='val_acc',
@@ -87,14 +88,21 @@ def main(args):
         # print('Found checkpoint, stop training.')
         # return 0
 
-    # If you want to change the logger's saving folder
-    logger = TensorBoardLogger(save_dir=args.log_dir, name=args.exp_name)
-    args.logger = logger
-
     callbacks = load_callbacks(args)
     args.callbacks = callbacks
 
+    # Tensorboard Logger
+    # tb_logger = TensorBoardLogger(save_dir=args.log_dir, name=args.exp_name)
+    comet_logger = CometLogger(api_key=args.comet_api_key,
+                               save_dir=args.log_dir + args.exp_name + '/',
+                               project_name="RepPaths",
+                               rest_api_key=os.environ.get("COMET_REST_API_KEY"),
+                               experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),
+                               experiment_name=args.exp_name,
+                               display_summary_level=0)
+    args.logger = comet_logger
     trainer = Trainer.from_argparse_args(args)
+
     if args.val_check_interval != 1.0 and isinstance(args.val_check_interval, int):
         # uid = callbacks[0].cur_uid
         test_metrics = trainer.test(model, data_module, ckpt_path=args.ckpt_path)[0]

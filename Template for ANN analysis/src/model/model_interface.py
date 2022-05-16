@@ -52,8 +52,8 @@ class ModelInterface(pl.LightningModule):
         preds = torch.argmax(out, dim=-1)
         acc = accuracy(preds, labels)
 
-        self.log("test_loss", loss, prog_bar=True)
-        self.log("test_acc", acc, prog_bar=True)
+        self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         img, labels = batch
@@ -112,8 +112,9 @@ class ModelInterface(pl.LightningModule):
                                                    mode=self.hparams.lr_decay_mode),
                          "interval": "step"}
         elif self.hparams.lr_scheduler.lower() == 'cosine':
+            max_steps = (50000//self.hparams.train_batch_size) * self.hparams.max_epochs
             scheduler = {"scheduler": lrs.CosineAnnealingLR(optimizer,
-                                                            T_max=self.hparams.max_epochs),
+                                                            T_max=max_steps),  # self.hparams.max_epochs),
                          "interval": "step"}
         elif self.hparams.lr_scheduler.lower() == 'plateau':
             # TODO: add plateau scheduler

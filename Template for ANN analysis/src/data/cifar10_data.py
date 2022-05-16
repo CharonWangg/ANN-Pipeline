@@ -68,7 +68,7 @@ class Cifar10Data(data.Dataset):
     def augmentation(self):
         if self.aug:
             trans = transforms.Compose([
-                transforms.RandomCrop(32, padding=4),
+                transforms.RandomCrop(32, padding=4, padding_mode="reflect"),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 cifar10_normalization(),
